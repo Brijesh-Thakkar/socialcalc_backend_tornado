@@ -7,9 +7,11 @@ import re
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 
+from dotenv import load_dotenv
 import tornado.httpclient
 import tornado.web
 
+load_dotenv()
 
 _EVM_ADDRESS = re.compile(r"^0x[a-fA-F0-9]{40}$")
 _UNAVAILABLE_MESSAGE = "Intercepta screening unavailable"
@@ -22,21 +24,29 @@ def _fail_closed():
 
 def _risk_endpoint(base_url, address, chain_id):
     base_url = base_url.rstrip("/")
-    base_url = re.sub(r"(?:/v1)+$", "/v1", base_url)
-    if base_url.endswith("/v1"):
-        endpoint = base_url + "/addresses/" + address
+    if "{address}" in base_url:
+        endpoint = base_url.format(address=address)
+    elif "/extension/account" in base_url:
+        endpoint = f"{base_url}/{address}/toxic-score"
+    elif base_url.endswith("/v1") or base_url.endswith("/v2"):
+        root = re.sub(r"/v[12]$", "", base_url)
+        endpoint = f"{root}/api/public/v2/extension/account/{address}/toxic-score"
+    elif "api.web3antivirus.io" in base_url:
+        endpoint = f"{base_url}/api/public/v2/extension/account/{address}/toxic-score"
     else:
-        endpoint = base_url + "/v1/addresses/" + address
+        endpoint = f"{base_url}/api/public/v2/extension/account/{address}/toxic-score"
     return endpoint + "?" + urlencode({"chain_id": chain_id})
 
 
 class RiskProfileHandler(tornado.web.RequestHandler):
-    def _finish_mock_fallback(self, address):
+    def _finish_mock_fallback(self, address, chain_id=1):
         self.finish({
             "address": address,
+            "chainId": chain_id,
             "verdict": "PASS",
             "riskScore": 0,
             "reasons": [],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "status": "mock_fallback",
         })
 
@@ -61,6 +71,7 @@ class RiskProfileHandler(tornado.web.RequestHandler):
         ).strip()
         api_key = os.environ.get("INTERCEPTA_API_KEY", "")
 
+        request = None
         try:
             timeout_ms = int(os.environ.get("INTERCEPTA_TIMEOUT_MS", "2500"))
             if timeout_ms <= 0:
@@ -75,19 +86,35 @@ class RiskProfileHandler(tornado.web.RequestHandler):
                 request_timeout=timeout_ms / 1000.0,
                 connect_timeout=timeout_ms / 1000.0,
             )
-            logger.info(f"Sending Intercepta request to: {request.url}")
+            logger.info("Sending Intercepta request to: %s", request.url)
             response = await tornado.httpclient.AsyncHTTPClient().fetch(request)
             result = json.loads(response.body.decode("utf-8"))
             if isinstance(result.get("data"), dict):
                 result = result["data"]
 
-            raw_score = result.get("risk_score", result.get("riskScore"))
+            raw_score = (
+                result.get("toxicScore")
+                if result.get("toxicScore") is not None
+                else result.get("risk_score", result.get("riskScore", result.get("score", 0)))
+            )
             risk_score = float(raw_score)
             if not (risk_score >= 0):
                 raise ValueError("Intercepta returned an invalid risk score")
-            reasons = result.get("reasons", result.get("flags", []))
-            if not isinstance(reasons, list):
-                reasons = []
+
+            raw_reasons = (
+                result.get("traits")
+                if result.get("traits") is not None
+                else result.get("reasons", result.get("flags", []))
+            )
+            reasons = []
+            if isinstance(raw_reasons, list):
+                for item in raw_reasons:
+                    if isinstance(item, dict):
+                        reason_name = item.get("name") or item.get("description") or item.get("code")
+                        if reason_name:
+                            reasons.append(str(reason_name))
+                    elif isinstance(item, str):
+                        reasons.append(item)
 
             self.finish({
                 "address": address,
@@ -98,22 +125,23 @@ class RiskProfileHandler(tornado.web.RequestHandler):
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
         except tornado.httpclient.HTTPClientError as exc:
+            req_url = request.url if request else base_url
             if not _fail_closed():
                 logger.warning(
                     "%s; HTTP %s from %s, using mock fallback: %s",
                     _UNAVAILABLE_MESSAGE,
                     exc.code,
-                    request.url,
+                    req_url,
                     exc,
                 )
-                self._finish_mock_fallback(address)
+                self._finish_mock_fallback(address, chain_id)
                 return
 
             logger.exception(
                 "%s: HTTP %s from %s",
                 _UNAVAILABLE_MESSAGE,
                 exc.code,
-                request.url,
+                req_url,
             )
             self.set_status(500)
             self.finish({
@@ -132,4 +160,4 @@ class RiskProfileHandler(tornado.web.RequestHandler):
                 return
 
             logger.warning("%s; using mock fallback: %s", _UNAVAILABLE_MESSAGE, exc)
-            self._finish_mock_fallback(address)
+            self._finish_mock_fallback(address, chain_id)
