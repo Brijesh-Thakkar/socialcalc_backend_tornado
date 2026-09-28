@@ -170,6 +170,12 @@ body, td, input, texarea {font-family:verdana,helvetica,sans-serif;font-size:sma
 <h3><a href="/dev">Aspiring Investments</a>&nbsp;&nbsp;&nbsp;Editing
 <span id="filenameholder">{{ entry["fname"] }}</span> in session {{ entry["session"] }}</h3>
 
+<div style="margin: 0 0 10px 12px;">
+  <button type="button" onclick="archiveCurrentSheetOn0G()">Archive this saved sheet on 0G</button>
+  <span id="zg-archive-result" aria-live="polite"></span>
+  <small>Archives are encrypted to the configured test wallet. Anyone with its private key can decrypt them.</small>
+</div>
+
 
 <div id="workbookControl" style="background-color:#80A9F3;">
 </div>
@@ -528,6 +534,32 @@ function savecheck(){
   return false;
 }
 
+function archiveCurrentSheetOn0G() {
+  if (!window.confirm("Archive this sheet on 0G? This sends the current sheet contents to 0G Storage, encrypted to the configured wallet. Only archive non-sensitive data unless you understand who controls that wallet.")) {
+    return;
+  }
+  var result = document.getElementById("zg-archive-result");
+  result.textContent = " Archiving…";
+  fetch("/api/v1/0g/archive", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      fname: Aspiring.AutoSave.selectedFile,
+      data: SocialCalc.WorkBookControlSaveSheet()
+    })
+  }).then(function(response) {
+    return response.json().then(function(payload) {
+      if (!response.ok) throw new Error(payload.error || "Archive failed");
+      return payload;
+    });
+  }).then(function(payload) {
+    result.textContent = " Root: " + payload.rootHash + (payload.mock ? " (mock)" : "");
+  }).catch(function(error) {
+    result.textContent = " Archive failed: " + error.message;
+  });
+}
+
 function runascheck(){
 
   var sheetstr = "";
@@ -802,4 +834,3 @@ $(document).ready(function(){
 </body>
 <script type="text/javascript" src="{{ static_url("socialcalcimages.js") }}"></script>
 </html>
-

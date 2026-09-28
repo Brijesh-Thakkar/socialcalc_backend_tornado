@@ -31,6 +31,7 @@ import json
 import cloud.storage.storage
 import cloud.authenticate.user
 from handlers.risk import RiskProfileHandler
+from handlers.zg_storage import AuthenticatedHandler, ZGArchiveHandler, ZGDownloadHandler
 
 from tornado.options import define, options
 from util.amazon_ses import AmazonSES,EmailMessage
@@ -94,6 +95,9 @@ class Application(tornado.web.Application):
             (r"/lostpw",UserLostPasswordHandler),
             (r"/webapp",WebAppHandler),
             (r"/api/v1/risk-profile/(.*)", RiskProfileHandler),
+            (r"/api/v1/0g/archive", ZGArchiveHandler),
+            (r"/api/v1/0g/archives", ZGArchiveHandler),
+            (r"/api/v1/0g/download/(.*)", ZGDownloadHandler),
             (r"/(?:webapp|api)/(login|register)", WebAppHandler),
             (r"/meshkit", MeshkitHandler),
             (r"/meshkit/upload", MeshkitSidecarHandler),
@@ -171,7 +175,7 @@ class Application(tornado.web.Application):
         memcache_host = os.environ.get('MEMCACHE_HOST', '127.0.0.1')
         self.mc = memcache.Client([memcache_host], debug=0)
 
-class BaseHandler(tornado.web.RequestHandler):
+class BaseHandler(AuthenticatedHandler):
     def wants_json(self):
         return (self.request.headers.get("Content-Type", "").split(";", 1)[0].lower() == "application/json"
                 or "application/json" in self.request.headers.get("Accept", ""))
@@ -227,13 +231,6 @@ class BaseHandler(tornado.web.RequestHandler):
     @property
     def db(self):
         return self.application.db
-
-    def get_current_user(self):
-        user_json = self.get_secure_cookie("user")
-        if user_json:
-            return tornado.escape.json_decode(user_json)
-        else:
-            return None
 
     def set_current_user(self, user):
         if user:
