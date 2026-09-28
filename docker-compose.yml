@@ -62,6 +62,9 @@ services:
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
       - MESHKIT_HELIA_SIDECAR_URL=http://meshkit-sidecar-helia:5052
+      - ZG_MODE=${ZG_MODE}
+      - ZG_SIDECAR_URL=http://zg-sidecar:5053
+      - ZG_PRIVATE_KEY=
     depends_on:
       memcache:
         condition: service_started
@@ -89,6 +92,9 @@ services:
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
       - MESHKIT_HELIA_SIDECAR_URL=http://meshkit-sidecar-helia:5052
+      - ZG_MODE=${ZG_MODE}
+      - ZG_SIDECAR_URL=http://zg-sidecar:5053
+      - ZG_PRIVATE_KEY=
     depends_on:
       memcache:
         condition: service_started
@@ -100,6 +106,16 @@ services:
         condition: service_started
       meshkit-sidecar-helia:
         condition: service_started
+    restart: unless-stopped
+
+  # ── Private 0G Storage HTTP sidecar (never publish its host port) ─────────
+  zg-sidecar:
+    build: ./0g-sidecar
+    env_file: .env
+    environment:
+      - ZG_SIDECAR_PORT=5053
+    networks:
+      - app_network
     restart: unless-stopped
 
   # ── MeshKit IPFS sidecar (REST gateway for SocialCalc save/load) ─────────

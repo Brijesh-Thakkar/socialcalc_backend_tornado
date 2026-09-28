@@ -1442,3 +1442,41 @@ You **must** set `PUBLIC_BASE_URL` when:
 | GET/POST | `/iconimg` | No | Icon image generation |
 | GET/POST | `/htmltopdf` | No | HTML to PDF conversion |
 | GET/POST | `/amazonwebapp/<p1>/randomCode/<p2>` | No | Amazon webapp handler |
+
+## 21. 0G Storage Archives (Galileo Testnet)
+
+The spreadsheet editor has an explicit **Archive this saved sheet on 0G** action. It asks for confirmation before sending the current SocialCalc save string to the private 0G sidecar. Existing `/save` behavior and autosave remain separate. The sidecar encrypts the archive with the 0G SDK's ECIES upload option before uploading it; downloads request proof verification and decrypt with the same dedicated Galileo wallet key. Anyone controlling that wallet can decrypt those archives, so use a test wallet and non-sensitive sheets for this demo.
+
+**Wallet recovery and rotation:** the current sidecar uses the configured `ZG_PRIVATE_KEY` for decryption. If that key is lost, existing encrypted archives cannot be decrypted; there is no recovery mechanism. If the key is rotated, archives created with the previous key still require that old key, and the current service does not track key versions or select among old keys. Keep the archive wallet backed up securely and retain old keys for as long as archives must remain readable. The Tornado download route requires login and checks that the requested root hash appears in that user's archive metadata before asking the sidecar to decrypt. This is per-user application authorization; encryption itself is to the shared archive wallet, not a distinct key for each user.
+
+The sidecar uses the pinned `@0gfoundation/0g-storage-ts-sdk@1.2.12` and its required peer `ethers@6.13.1`. It is attached only to the Compose `app_network`; it has no host-published port. The Tornado routes check the signed-in user and verify sheet ownership. Per-user archive metadata lives in S3 at a key derived from the user's hash, rather than in the spreadsheet directory. The archive body limit is 1 MiB. A sidecar connection failure returns 503; an upload/download/proof failure returns 502. Mock mode is in-memory and is only for local integration checks.
+
+### Local mock-mode run
+
+1. Add the 0G settings from `.env.example` to your local `.env` and keep `ZG_MODE=mock`. Preserve the rest of your existing `.env`; no wallet key is needed in mock mode.
+2. Start the app stack:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Open `http://localhost:8080`, sign in, open a saved sheet, and choose **Archive this saved sheet on 0G**. Confirm the prompt. A mock root hash appears beside the button and is recorded in the user's archive metadata.
+4. The authenticated API endpoints are `POST /api/v1/0g/archive` (`{ "fname": "sheet-name", "data": "SocialCalc save string" }`), `GET /api/v1/0g/archives`, and `GET /api/v1/0g/download/<rootHash>`. The editor action uses the current sheet serialization for the POST body. Mock archives are held in sidecar memory and do not survive a sidecar restart.
+
+### Enable Galileo testnet mode
+
+1. Create a **new MetaMask account for testing only**. Do not use a wallet holding real assets.
+2. Add the current 0G Galileo network using the official 0G docs: network name `0G Galileo Testnet`, RPC `https://evmrpc-testnet.0g.ai`, chain ID `16602`, currency symbol `0G`, explorer `https://chainscan-galileo.0g.ai`.
+3. Request test tokens for that account at [faucet.0g.ai](https://faucet.0g.ai). The published daily faucet limit is about `0.1 0G` per wallet; uploads need a funded wallet for gas.
+4. In the local `.env` only, set `ZG_MODE=live` and `ZG_PRIVATE_KEY` to the private key exported from that test account's MetaMask **Account Details → Show Private Key**. Never paste the key into chat, source control, or `.env.example`. Keep the test endpoints set to Galileo RPC and the Turbo indexer `https://indexer-storage-testnet-turbo.0g.ai`.
+5. Restart with `docker compose up --build`. The key is passed to the 0G sidecar; Compose explicitly clears it from both Tornado app containers. Do not click the archive action until you are ready to submit a testnet upload.
+6. Use a tiny non-sensitive sheet for the first live check. The archive action returns `rootHash` and `txHash`; the archive list records both. Download through the user's archive list or the download route to verify the SDK proof and byte contents.
+
+### Tests
+
+```bash
+python -m unittest tests.test_zg_storage -v
+cd 0g-sidecar && npm test
+```
+
+The Tornado tests mock the sidecar HTTP client. The Node sidecar tests mock the SDK and cover the ECIES encryption and proof-verified download options. They do not submit a live transaction.
