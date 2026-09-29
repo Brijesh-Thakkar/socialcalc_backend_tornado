@@ -1423,6 +1423,8 @@ You **must** set `PUBLIC_BASE_URL` when:
 | GET | `/dev` | No | Redirect: → `/save` or → `/login` |
 | GET | `/save` | Yes | Dashboard: list user's spreadsheets |
 | POST | `/save` | Yes | Save spreadsheet data to S3 |
+| GET | `/api/v1/modern/sheet?fname=...` | Yes | Return a saved workbook as JSON after a user-scoped S3 lookup (4 MiB cap) |
+| GET | `/modern/` | Yes | Modern React/Ionic SocialCalc editor |
 | POST | `/usersheet` | Yes | Open spreadsheet for editing; or delete |
 | GET | `/import` | Yes | Import spreadsheet page |
 | POST | `/import` | Yes | Process uploaded file (PHP interop) |
@@ -1480,3 +1482,33 @@ cd 0g-sidecar && npm test
 ```
 
 The Tornado tests mock the sidecar HTTP client. The Node sidecar tests mock the SDK and cover the ECIES encryption and proof-verified download options. They do not submit a live transaction.
+
+## 22. Modern SocialCalc Editor
+
+The optional `/modern/` page is a separate React/Ionic client built from the published `socialcalc-ai@1.0.9` package. Exact direct dependency pins are `react@18.3.1`, `react-dom@18.3.1`, `@ionic/react@7.8.6`, and `ionicons@7.4.0`; `modern-client/package-lock.json` locks the complete install. The package API used here is `initializeApp`, `enableRowColHeaders`, `enableGridLines`, `enableTouchScroll`, and `getMSCContent`. The latter returns the SocialCalc workbook JSON the legacy editor stores; Save posts `{fname, data}` to the existing `/save` route. The client does not change the legacy editor or its autosave.
+
+Before the browser loads a sheet, it calls `GET /api/v1/modern/sheet?fname=...`. Tornado requires the existing secure login cookie and reads only `home/<signed-in-user>/<fname>` through `cloud.storage.storage.getFile`, the same S3 storage helper used by the existing handlers. It rejects path-like names and data over 4 MiB. `/modern/` and its built assets also require that login.
+
+SocialCalc's `needsrecalc:yes` sheet attribute means formula results may be stale and the workbook needs recalculation; it is not a corruption marker. The package workbook loader sets this while loading sheets. The browser round-trip test loads `templates/Cupcake.msc`, saves through a mock `/save` response, reloads that app-generated save string, and compares every cell record. The app integration test also logs in, writes the fixture through the real `/save` handler into isolated local storage, loads it through the new JSON route, then saves and reloads it in the modern editor. Both tests confirm all five sheet names and cell contents, formulas, and formatting survive unchanged with this package version.
+
+### Build and run locally
+
+```bash
+cd modern-client
+npm ci
+npm run build
+cd ..
+```
+
+The build writes the production bundle into `static/modern/` for Tornado to serve. Start the app as described in the local backend section (for example, `python cloudmain-dev.py --port=8888` with its normal environment and storage configuration), sign in, and open `http://localhost:8888/modern/`. From the saved-sheets list, **Try modern editor** next to a sheet opens that sheet directly. **Archive on 0G** is available as an explicit opt-in action and uses the existing authenticated 0G archive endpoint.
+
+### Tests
+
+```bash
+python -m unittest discover -s tests -p 'test_modern_sheet.py' -v
+npm run test:modern-roundtrip
+```
+
+The route tests cover login, user-scoped ownership, invalid names, and the response-size cap. The Playwright round-trip test uses Chromium and mocks the HTTP API while exercising the built editor against the real `Cupcake.msc` fixture and its own app-format save output.
+
+For the full app integration test, start Tornado and run `BASE_URL=http://localhost:8888 npm test -- tests/e2e/modern-editor.spec.ts`.

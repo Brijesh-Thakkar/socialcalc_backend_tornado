@@ -1,0 +1,21 @@
+{
+  "name": "tornado-socialcalc-modern-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@ionic/react": "7.8.6",
+    "ionicons": "7.4.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "socialcalc-ai": "1.0.9"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.7.0",
+    "typescript": "5.8.3",
+    "vite": "6.4.1"
+  }
+}

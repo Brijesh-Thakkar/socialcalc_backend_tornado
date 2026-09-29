@@ -1,0 +1,9 @@
+html, body, #root, ion-app { width: 100%; min-width: 320px; height: 100%; margin: 0; }
+ion-content { --background: #f7f8fa; }
+ion-toolbar { --background: #17365d; --color: #fff; }
+ion-title { font-size: 1.05rem; }
+.status { min-height: 1.5rem; padding: .55rem 1rem; color: #344054; font: 14px/1.4 system-ui, sans-serif; }
+#container { min-height: calc(100vh - 150px); margin: 0 1rem; overflow: auto; background: #fff; border: 1px solid #d0d5dd; }
+#workbookControl, #tableeditor { width: 100%; }
+#msg { display: none; }
+footer { padding: .75rem 1rem 1rem; font: 14px system-ui, sans-serif; }

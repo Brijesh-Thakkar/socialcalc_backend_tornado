@@ -32,6 +32,7 @@ import cloud.storage.storage
 import cloud.authenticate.user
 from handlers.risk import RiskProfileHandler
 from handlers.zg_storage import AuthenticatedHandler, ZGArchiveHandler, ZGDownloadHandler
+from handlers.modern import ModernSheetDataHandler, ModernStaticFileHandler
 
 from tornado.options import define, options
 from util.amazon_ses import AmazonSES,EmailMessage
@@ -98,6 +99,11 @@ class Application(tornado.web.Application):
             (r"/api/v1/0g/archive", ZGArchiveHandler),
             (r"/api/v1/0g/archives", ZGArchiveHandler),
             (r"/api/v1/0g/download/(.*)", ZGDownloadHandler),
+            (r"/api/v1/modern/sheet", ModernSheetDataHandler),
+            (r"/modern/?(.*)", ModernStaticFileHandler, {
+                "path": os.path.join(os.path.dirname(__file__), "static", "modern"),
+                "default_filename": "index.html",
+            }),
             (r"/(?:webapp|api)/(login|register)", WebAppHandler),
             (r"/meshkit", MeshkitHandler),
             (r"/meshkit/upload", MeshkitSidecarHandler),

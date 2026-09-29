@@ -9,7 +9,8 @@
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report",
-    "test:intercepta": "jest tests/interceptaScreening.test.js --runInBand"
+    "test:intercepta": "jest tests/interceptaScreening.test.js --runInBand",
+    "test:modern-roundtrip": "node --test tests/modern_roundtrip.test.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
