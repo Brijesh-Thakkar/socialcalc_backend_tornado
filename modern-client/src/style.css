@@ -1,9 +1,13 @@
-html, body, #root, ion-app { width: 100%; min-width: 320px; height: 100%; margin: 0; }
-ion-content { --background: #f7f8fa; }
-ion-toolbar { --background: #17365d; --color: #fff; }
-ion-title { font-size: 1.05rem; }
-.status { min-height: 1.5rem; padding: .55rem 1rem; color: #344054; font: 14px/1.4 system-ui, sans-serif; }
-#container { min-height: calc(100vh - 150px); margin: 0 1rem; overflow: auto; background: #fff; border: 1px solid #d0d5dd; }
+html, body, #root, ion-app { width: 100%; min-width: 320px; min-height: 100%; margin: 0; }
+body { color: #222; background: #fff; font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif; }
+.modern-shell { width: 950px; max-width: calc(100% - 24px); margin: 16px auto; }
+.modern-heading { margin: 0 0 1em; font-size: 1.5em; font-weight: normal; line-height: 1; }
+.modern-actions { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+.modern-actions .smaller { font-size: smaller; }
+.modern-actions a { margin-left: auto; }
+.status { min-height: 1.5rem; color: #222; }
+#container { min-height: calc(100vh - 150px); overflow: auto; }
 #workbookControl, #tableeditor { width: 100%; }
+#tableeditor { margin: 8px 10px 10px; }
 #msg { display: none; }
-footer { padding: .75rem 1rem 1rem; font: 14px system-ui, sans-serif; }
+.sc-inline-cell-editor { position: fixed; z-index: 10000; box-sizing: border-box; padding: 2px 4px; border: 2px solid #2563eb; border-radius: 0; background: #fff; color: #111; font: inherit; outline: none; }

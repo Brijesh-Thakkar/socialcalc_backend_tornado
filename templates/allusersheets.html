@@ -40,8 +40,6 @@
 </div>
 <div class="span-8" align="center">
 
-    <p><a href="/modern">Try modern editor</a></p>
-    
     <form action="/search" method="GET" style="margin-bottom: 15px;">
         <input type="text" name="q" value="{{ handler.get_argument('q', '') }}">
         <input type="submit" value="Search">
@@ -63,7 +61,7 @@
                         <input class="smaller" type="submit" value="Edit" onclick="doedit('{{ entry.fname }}');">
                     </td>
                     <td>
-                        <a href="/modern?fname={{ url_escape(entry.fname) }}">Try modern editor</a>
+                        <input class="smaller" type="button" value="Try modern editor" onclick="window.location.href='/modern?fname={{ url_escape(entry.fname) }}';">
                     </td>
                     <td>
                         <input class="smaller" type="submit" value="View" onclick="doview('{{ entry.fname }}');">

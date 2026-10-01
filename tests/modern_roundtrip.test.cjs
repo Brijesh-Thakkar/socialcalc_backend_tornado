@@ -69,7 +69,7 @@ test('Cupcake and app-generated workbooks survive modern load/save/reload', asyn
   await page.goto(`${previewUrl}?fname=Cupcake`);
   await page.getByRole('status').filter({ hasText: 'Loaded “Cupcake”' }).waitFor();
   await page.locator('#te_griddiv').waitFor();
-  await page.locator('ion-button').filter({ hasText: /^Save$/ }).click();
+  await page.locator('.modern-actions input[value="Save"]').click();
   await page.getByRole('status').filter({ hasText: 'Saved “Cupcake”' }).waitFor();
 
   const afterFixtureLoad = JSON.parse(savedData);
@@ -88,7 +88,7 @@ test('Cupcake and app-generated workbooks survive modern load/save/reload', asyn
   await page.reload();
   await page.getByRole('status').filter({ hasText: 'Loaded “Cupcake”' }).waitFor();
   await page.locator('#te_griddiv').waitFor();
-  await page.locator('ion-button').filter({ hasText: /^Save$/ }).click();
+  await page.locator('.modern-actions input[value="Save"]').click();
   await page.getByRole('status').filter({ hasText: 'Saved “Cupcake”' }).waitFor();
   const afterReload = JSON.parse(savedData);
   assert.equal(afterReload.numsheets, afterFixtureLoad.numsheets);
