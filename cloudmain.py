@@ -257,7 +257,7 @@ class UserLostPasswordHandler(BaseHandler):
         char_set = string.ascii_uppercase + string.digits
         return ''.join(random.sample(char_set,size))
     def getLostPwLink(self, user,dongle):
-        return "http://"+self.request.host+"/pwreset?u="+user+"&d="+dongle
+        return self.request.protocol + "://" + self.request.host+"/pwreset?u="+user+"&d="+dongle
 
 class PwResetHandler(BaseHandler):
     def get(self):
@@ -1400,7 +1400,7 @@ class IconImgHandler(BaseHandler):
         f.write(str)
         f.close()
         fname = fname+"."+self.get_argument('suffix')
-        imgurl="http://"+self.request.host+"/iconimg?fname=%s"%fname
+        imgurl=self.request.protocol + "://" + self.request.host+"/iconimg?fname=%s"%fname
         self.finish(dict(imgurl=imgurl,result="ok"))
 
 class HtmlToPdfHandler(BaseHandler):
@@ -1454,7 +1454,7 @@ class HtmlToPdfHandler(BaseHandler):
         logging.info(inpfile)
         cmdname = "/usr/local/bin/wkhtmltopdf.sh"
         output = subprocess.getoutput("%s %s %s"%(cmdname, inpfile, outfile))
-        base = PUBLIC_BASE_URL if PUBLIC_BASE_URL else "http://" + self.request.host
+        base = PUBLIC_BASE_URL if PUBLIC_BASE_URL else self.request.protocol + "://" + self.request.host
         pdfurl = "%s/htmltopdf?fname=%s" % (base, fname)
         self.finish(dict(pdfurl=pdfurl,result="ok"))
 
@@ -1651,7 +1651,7 @@ shared investment model
                 #self.db.execute(
                 #    "UPDATE UserSheets SET data = %s"
                 #    "WHERE user = %s AND fname = %s", sheetstr, user, fname)
-        link = "http://"+self.request.host+"/embed?arg="+fname
+        link = self.request.protocol + "://" + self.request.host+"/embed?arg="+fname
         # send email
         if (msg != ""):
             msg = pretext+"\n"+link+"\n\nMessage From "+fromname+ \
@@ -1712,7 +1712,7 @@ real-time
         to = self.get_argument("to")
         msg = self.get_argument("msg")
         session = self.get_argument("session", None)
-        link = "http://"+self.request.host+"/collaborate?shsessionid="+session
+        link = self.request.protocol + "://" + self.request.host+"/collaborate?shsessionid="+session
         # send email
         if (msg != ""):
             msg = pretext+"\n"+link+"\n\nMessage From "+fromname+ \
@@ -1781,7 +1781,7 @@ class EmbedHandler(BaseHandler):
                 #self.db.execute(
                 #    "UPDATE UserSheets SET data = %s"
                 #    "WHERE user = %s AND fname = %s", sheetstr, user, fname)
-        link = "http://"+self.request.host+self.request.uri+"?arg="+fname
+        link = self.request.protocol + "://" + self.request.host+self.request.uri+"?arg="+fname
         self.finish(dict(data=link))        
 
     def get_random_string(self,size):
@@ -2186,7 +2186,7 @@ class BusinessRecordKeeper(BaseHandler):
 
 def main():
     tornado.options.parse_command_line()
-    http_server = tornado.httpserver.HTTPServer(Application())
+    http_server = tornado.httpserver.HTTPServer(Application(), xheaders=True)
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
 
