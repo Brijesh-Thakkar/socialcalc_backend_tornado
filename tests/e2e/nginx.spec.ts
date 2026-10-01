@@ -63,4 +63,25 @@ test.describe('Nginx Reverse Proxy', () => {
     expect(out).toContain('syntax is ok');
     expect(out).toContain('test is successful');
   });
+
+  // nginx discards every server-level proxy_set_header inside a location that sets its own.
+  // The WebSocket/long-poll locations do, so they must repeat the forwarding headers or the
+  // app sees Host "tornado_app" and loses the public scheme and client IP (broken links).
+  test('every location that sets proxy headers forwards Host, scheme and client IP', async () => {
+    const fs = require('fs');
+    const path = require('path');
+    const conf = fs
+      .readFileSync(path.resolve(__dirname, '../../configs/nginx.docker.conf'), 'utf8')
+      .replace(/#.*$/gm, ''); // ignore commented-out directives
+    const blocks = [...conf.matchAll(/location\s+[^{]+\{([^}]*)\}/g)].map((m) => m[0]);
+    const withHeaders = blocks.filter((b) => b.includes('proxy_set_header'));
+    expect(withHeaders.length).toBeGreaterThan(0);
+    for (const block of withHeaders) {
+      for (const header of ['Host', 'X-Real-IP', 'X-Forwarded-For', 'X-Forwarded-Proto', 'X-Scheme']) {
+        expect(block, `${block.split('{')[0].trim()} missing ${header}`).toMatch(
+          new RegExp(`proxy_set_header\\s+${header}\\s`),
+        );
+      }
+    }
+  });
 });
