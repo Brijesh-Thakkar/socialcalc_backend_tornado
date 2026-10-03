@@ -73,6 +73,15 @@ services:
       - MEMCACHE_HOST=memcache
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+      # Omamori x402 firewall (optional sidecar, `--profile omamori`). Without
+      # it the /omamori/* and /x402/* routes fail closed; nothing else changes.
+      - OMAMORI_FIREWALL_URL=${OMAMORI_FIREWALL_URL:-http://omamori-firewall:4001}
+      - OMAMORI_TIMEOUT_S=${OMAMORI_TIMEOUT_S:-15}
+      - OMAMORI_PAYTO_ADDRESS=${OMAMORI_PAYTO_ADDRESS:-}
+      - OMAMORI_SELLER_USER=${OMAMORI_SELLER_USER:-}
+      - OMAMORI_EXPORT_PRICE=${OMAMORI_EXPORT_PRICE:-10000}
+      - OMAMORI_RESOURCE_BASE_URL=${OMAMORI_RESOURCE_BASE_URL:-http://nginx}
+      - OMAMORI_PUBLIC_BASE_URL=${OMAMORI_PUBLIC_BASE_URL:-http://localhost:8080}
     depends_on:
       memcache:
         condition: service_started
@@ -97,6 +106,15 @@ services:
       - MEMCACHE_HOST=memcache
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+      # Omamori x402 firewall (optional sidecar, `--profile omamori`). Without
+      # it the /omamori/* and /x402/* routes fail closed; nothing else changes.
+      - OMAMORI_FIREWALL_URL=${OMAMORI_FIREWALL_URL:-http://omamori-firewall:4001}
+      - OMAMORI_TIMEOUT_S=${OMAMORI_TIMEOUT_S:-15}
+      - OMAMORI_PAYTO_ADDRESS=${OMAMORI_PAYTO_ADDRESS:-}
+      - OMAMORI_SELLER_USER=${OMAMORI_SELLER_USER:-}
+      - OMAMORI_EXPORT_PRICE=${OMAMORI_EXPORT_PRICE:-10000}
+      - OMAMORI_RESOURCE_BASE_URL=${OMAMORI_RESOURCE_BASE_URL:-http://nginx}
+      - OMAMORI_PUBLIC_BASE_URL=${OMAMORI_PUBLIC_BASE_URL:-http://localhost:8080}
     depends_on:
       memcache:
         condition: service_started
@@ -166,6 +184,28 @@ services:
     restart: unless-stopped
 
   # ── Nginx reverse proxy (only service that binds a host port) ─────────────
+  # ── Omamori x402 pre-signature firewall (optional) ─────────────────────────
+  # Only started with `docker compose --profile omamori up`. Internal to
+  # app_network (expose, never a host port); reached only via Tornado's
+  # POST /omamori/sign. Keys live in docker/omamori/.env (gitignored), so they
+  # never enter the Tornado containers' environment.
+  omamori-firewall:
+    profiles: ["omamori"]
+    build: ./docker/omamori
+    expose:
+      - "4001"
+    env_file:
+      - path: ./docker/omamori/.env
+        required: false
+    environment:
+      - FIREWALL_DATA_DIR=/data
+      - PORT=4001
+    volumes:
+      - omamori_data:/data
+    networks:
+      - app_network
+    restart: unless-stopped
+
   nginx:
     image: nginx:1.27-alpine
     ports:
@@ -186,3 +226,4 @@ networks:
 volumes:
   minio_data:
   kubo_data:
+  omamori_data:
