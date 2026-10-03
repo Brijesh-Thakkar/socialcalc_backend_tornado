@@ -17,6 +17,7 @@ cd "$(dirname "$0")/.."
 FILES=(-f docker-compose.yml -f docker-compose.cloudflare.yml)
 for f in ${COMPOSE_EXTRA_FILES:-}; do FILES+=(-f "$f"); done
 PROFILES=(--profile tunnel --profile tunnel-quick)
+# api.trycloudflare.com is Cloudflare's own API host (appears in the logs), not a tunnel
 URL_RE='https://[a-z0-9-]+\.trycloudflare\.com'
 
 dc() { docker compose "${FILES[@]}" "$@"; }
@@ -27,7 +28,7 @@ have_token() {
   [ -f .env ] && grep -qE '^CLOUDFLARE_TUNNEL_TOKEN=.+' .env
 }
 
-quick_url() { dc "${PROFILES[@]}" logs --no-color cloudflared-quick 2>/dev/null | grep -oE "$URL_RE" | tail -1 || true; }
+quick_url() { dc "${PROFILES[@]}" logs --no-color cloudflared-quick 2>/dev/null | grep -oE "$URL_RE" | grep -v '^https://api\.' | tail -1 || true; }
 
 cmd_up() {
   if ! have_token; then

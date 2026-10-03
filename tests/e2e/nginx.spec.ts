@@ -8,17 +8,20 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Nginx Reverse Proxy', () => {
-  test('Tornado version header is visible (nginx passes Server header)', async ({ request }) => {
+  test('Server header identifies the responder (Tornado locally, Cloudflare via tunnel)', async ({ request }, testInfo) => {
+    const baseURL = String(testInfo.project.use.baseURL);
+    const isLocal = ['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname);
     const resp = await request.get('/login');
     expect(resp.status()).toBe(200);
     const server = resp.headers()['server'] || '';
-    if (resp.headers()['cf-ray']) {
-      // Remote run through a Cloudflare Tunnel: the edge replaces Server on every response,
-      // so pass-through can only be observed locally. Assert the request went via Cloudflare.
-      expect(server).toBe('cloudflare');
+    if (isLocal) {
+      // nginx proxy_pass_header Server passes the Tornado header through ("TornadoServer/<version>")
+      expect(server.split('/')[0]).toBe('TornadoServer');
     } else {
-      // nginx proxy_pass_header Server passes TornadoServer header through
-      expect(server).toContain('TornadoServer');
+      // Remote run through a Cloudflare Tunnel: the edge replaces Server on every response, so
+      // pass-through can only be observed locally. Require proof the request went via Cloudflare.
+      expect(resp.headers()['cf-ray'], 'remote BASE_URL must be served by Cloudflare').toBeTruthy();
+      expect(server).toBe('cloudflare');
     }
   });
 
