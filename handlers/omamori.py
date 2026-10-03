@@ -260,6 +260,7 @@ class OmamoriSignHandler(tornado.web.RequestHandler):
             request_timeout=cfg["timeout_s"],
             connect_timeout=min(cfg["timeout_s"], 5.0),
             follow_redirects=False,
+            user_agent="socialcalc-omamori",
         )
         try:
             response = await tornado.httpclient.AsyncHTTPClient().fetch(request, raise_error=False)
