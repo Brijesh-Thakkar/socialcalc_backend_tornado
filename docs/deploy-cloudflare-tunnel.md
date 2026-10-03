@@ -80,6 +80,11 @@ scripts/cloudflare-tunnel.sh quick
 # https://random-words-1234.trycloudflare.com
 ```
 
+The script prints the URL only after `/login` has returned HTTP 200 three times in a row (90 s
+timeout, tunable with `READY_TIMEOUT` / `READY_STREAK`), because a brand-new `*.trycloudflare.com`
+name can fail DNS resolution for tens of seconds after it appears in the logs. Only the URL goes to
+stdout, so `URL=$(scripts/cloudflare-tunnel.sh quick)` works; progress and compose output go to stderr.
+
 The URL is random, changes on every start and has no uptime guarantee. Don't use it for
 production. Without the script:
 ```bash

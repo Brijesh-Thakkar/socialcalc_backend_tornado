@@ -2,7 +2,7 @@
 # Manage the Cloudflare Tunnel overlay for the Docker Compose stack.
 #
 #   scripts/cloudflare-tunnel.sh up      stack + named tunnel (needs CLOUDFLARE_TUNNEL_TOKEN)
-#   scripts/cloudflare-tunnel.sh quick   stack + quick tunnel, prints the trycloudflare URL
+#   scripts/cloudflare-tunnel.sh quick   stack + quick tunnel; prints the trycloudflare URL once /login has returned 200 three times in a row (90 s timeout)
 #   scripts/cloudflare-tunnel.sh down    stop the tunnel container(s) only
 #   scripts/cloudflare-tunnel.sh down --all   stop and remove the whole stack
 #   scripts/cloudflare-tunnel.sh logs    follow cloudflared logs
@@ -30,6 +30,31 @@ have_token() {
 
 quick_url() { dc "${PROFILES[@]}" logs --no-color cloudflared-quick 2>/dev/null | grep -oE "$URL_RE" | grep -v '^https://api\.' | tail -1 || true; }
 
+# A trycloudflare URL appears in the logs before DNS/edge routing to it works. Wait until
+# GET /login returns 200 READY_STREAK times in a row (default 3) within READY_TIMEOUT
+# seconds (default 90) so callers (tests, curl) never race a half-ready tunnel.
+wait_ready() {
+  local url=$1 need=${READY_STREAK:-3} deadline=$((SECONDS + ${READY_TIMEOUT:-90}))
+  local streak=0 code err last="no response yet"
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    err=$(mktemp)
+    code=$(curl -sS -o /dev/null -m 5 -w '%{http_code}' "$url/login" 2>"$err") || true
+    if [ "$code" = 200 ]; then
+      streak=$((streak + 1)); last="HTTP 200"
+      [ "$streak" -ge "$need" ] && { rm -f "$err"; return 0; }
+    else
+      streak=0
+      last="HTTP $code"; [ -s "$err" ] && last="$last ($(head -c 120 "$err" | tr -d '\n'))"
+    fi
+    rm -f "$err"
+    sleep 1
+  done
+  echo "Quick tunnel $url did not return HTTP 200 on /login $need times in a row within ${READY_TIMEOUT:-90}s." >&2
+  echo "Last result: $last" >&2
+  echo "Check '$0 logs' (UDP blocked? try CLOUDFLARED_PROTOCOL=http2) and that nginx/app containers are healthy." >&2
+  return 1
+}
+
 cmd_up() {
   if ! have_token; then
     echo "CLOUDFLARE_TUNNEL_TOKEN is not set (env or .env)." >&2
@@ -42,7 +67,8 @@ cmd_up() {
 }
 
 cmd_quick() {
-  dc --profile tunnel-quick up -d --build
+  # compose/build output goes to stderr so stdout is exactly the URL (scriptable: URL=$(... quick))
+  dc --profile tunnel-quick up -d --build >&2
   local url="" i
   for i in $(seq 1 60); do
     url=$(quick_url)
@@ -54,6 +80,8 @@ cmd_quick() {
     dc "${PROFILES[@]}" logs --tail=30 cloudflared-quick >&2 || true
     exit 1
   fi
+  echo "Waiting for $url to serve /login..." >&2
+  wait_ready "$url" || exit 1
   echo "$url"
 }
 
