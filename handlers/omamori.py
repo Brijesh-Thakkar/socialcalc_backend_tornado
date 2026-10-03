@@ -126,8 +126,13 @@ def _config_problem(cfg):
 
 
 def _storage_sheet_exists(seller, sheet_id):
+    """True only for a saved sheet file (not a directory such as securestore).
+
+    getFileRaw rather than getFile: the latter prints the whole item to stdout.
+    """
     import cloud.storage.storage  # imported lazily so unit tests need no S3
-    return cloud.storage.storage.getFile(["home", seller, sheet_id]) is not None
+    item = cloud.storage.storage.getFileRaw(["home", seller, sheet_id])
+    return isinstance(item, dict) and item.get("type") == "file"
 
 
 def allowed_resource_path(resource_url):

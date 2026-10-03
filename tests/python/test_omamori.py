@@ -186,6 +186,33 @@ class ChallengeTests(OmamoriTestBase):
         self.assertNotIn("PAYMENT-REQUIRED", response.headers)
 
 
+class StorageLookupTests(unittest.TestCase):
+    """The real lookup: only a saved *file* counts, never a directory."""
+
+    def _exists_with(self, item):
+        import sys
+        import types
+        from handlers import omamori
+        fake = types.SimpleNamespace(getFileRaw=lambda path: item)
+        cloud = types.ModuleType("cloud"); storage_pkg = types.ModuleType("cloud.storage")
+        cloud.storage = storage_pkg; storage_pkg.storage = fake
+        saved = {k: sys.modules.get(k) for k in ("cloud", "cloud.storage", "cloud.storage.storage")}
+        sys.modules.update({"cloud": cloud, "cloud.storage": storage_pkg, "cloud.storage.storage": fake})
+        try:
+            return omamori._storage_sheet_exists(SELLER, "budget")
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    sys.modules.pop(k, None)
+                else:
+                    sys.modules[k] = v
+
+    def test_only_files_count_as_sheets(self):
+        self.assertTrue(self._exists_with({"type": "file", "data": "x"}))
+        self.assertFalse(self._exists_with({"type": "dir", "data": "[]"}))
+        self.assertFalse(self._exists_with(None))
+        self.assertFalse(self._exists_with("garbage"))
+
 class SignTestBase(OmamoriTestBase):
     def sign(self, body=None, headers=None, raw=None):
         payload = raw if raw is not None else json.dumps(body if body is not None else self.valid_body())
