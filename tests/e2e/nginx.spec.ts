@@ -8,12 +8,21 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Nginx Reverse Proxy', () => {
-  test('Tornado version header is visible (nginx passes Server header)', async ({ request }) => {
+  test('Server header identifies the responder (Tornado locally, Cloudflare via tunnel)', async ({ request }, testInfo) => {
+    const baseURL = String(testInfo.project.use.baseURL);
+    const isLocal = ['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname);
     const resp = await request.get('/login');
     expect(resp.status()).toBe(200);
     const server = resp.headers()['server'] || '';
-    // nginx proxy_pass_header Server passes TornadoServer header through
-    expect(server).toContain('TornadoServer');
+    if (isLocal) {
+      // nginx proxy_pass_header Server passes the Tornado header through ("TornadoServer/<version>")
+      expect(server.split('/')[0]).toBe('TornadoServer');
+    } else {
+      // Remote run through a Cloudflare Tunnel: the edge replaces Server on every response, so
+      // pass-through can only be observed locally. Require proof the request went via Cloudflare.
+      expect(resp.headers()['cf-ray'], 'remote BASE_URL must be served by Cloudflare').toBeTruthy();
+      expect(server).toBe('cloudflare');
+    }
   });
 
   test('Host header is forwarded — app uses request.host correctly', async ({ page }) => {
@@ -62,5 +71,26 @@ test.describe('Nginx Reverse Proxy', () => {
     });
     expect(out).toContain('syntax is ok');
     expect(out).toContain('test is successful');
+  });
+
+  // nginx discards every server-level proxy_set_header inside a location that sets its own.
+  // The WebSocket/long-poll locations do, so they must repeat the forwarding headers or the
+  // app sees Host "tornado_app" and loses the public scheme and client IP (broken links).
+  test('every location that sets proxy headers forwards Host, scheme and client IP', async () => {
+    const fs = require('fs');
+    const path = require('path');
+    const conf = fs
+      .readFileSync(path.resolve(__dirname, '../../configs/nginx.docker.conf'), 'utf8')
+      .replace(/#.*$/gm, ''); // ignore commented-out directives
+    const blocks = [...conf.matchAll(/location\s+[^{]+\{([^}]*)\}/g)].map((m) => m[0]);
+    const withHeaders = blocks.filter((b) => b.includes('proxy_set_header'));
+    expect(withHeaders.length).toBeGreaterThan(0);
+    for (const block of withHeaders) {
+      for (const header of ['Host', 'X-Real-IP', 'X-Forwarded-For', 'X-Forwarded-Proto', 'X-Scheme']) {
+        expect(block, `${block.split('{')[0].trim()} missing ${header}`).toMatch(
+          new RegExp(`proxy_set_header\\s+${header}\\s`),
+        );
+      }
+    }
   });
 });

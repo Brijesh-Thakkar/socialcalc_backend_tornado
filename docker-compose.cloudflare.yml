@@ -1,0 +1,58 @@
+# Cloudflare Tunnel overlay — publishes the stack without opening any inbound port.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml --profile tunnel up -d
+#   docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml --profile tunnel-quick up -d
+#
+# (or use scripts/cloudflare-tunnel.sh). Kept as an overlay + profiles so the base
+# file and CI (`docker compose up`) never start cloudflared and need no token.
+#
+# Security: cloudflared receives ONLY TUNNEL_TOKEN. It deliberately has no
+# `env_file`, so none of the app secrets in .env (cookie secret, AWS, 0G, API keys)
+# reach it. It publishes no ports: the connection to Cloudflare is outbound-only.
+services:
+  # ── Named tunnel (needs a Cloudflare account) ─────────────────────────────
+  # Public hostname -> service URL http://nginx:80 is configured in the dashboard.
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.3
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+      - TUNNEL_METRICS=0.0.0.0:2000
+      # auto (default) | quic | http2. Use http2 on networks that block UDP/7844 (QUIC),
+      # e.g. some campus/corporate networks; it only needs outbound TCP 7844.
+      - TUNNEL_TRANSPORT_PROTOCOL=${CLOUDFLARED_PROTOCOL:-auto}
+    networks:
+      - app_network
+    depends_on:
+      - nginx
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "localhost:2000", "ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # ── Quick tunnel (no account; random, temporary *.trycloudflare.com URL) ──
+  # For testing only — no uptime guarantee, URL changes on every start.
+  cloudflared-quick:
+    image: cloudflare/cloudflared:2026.9.3
+    profiles: ["tunnel-quick"]
+    command: tunnel --no-autoupdate --url http://nginx:80
+    environment:
+      - TUNNEL_METRICS=0.0.0.0:2000
+      # auto (default) | quic | http2. Use http2 on networks that block UDP/7844 (QUIC),
+      # e.g. some campus/corporate networks; it only needs outbound TCP 7844.
+      - TUNNEL_TRANSPORT_PROTOCOL=${CLOUDFLARED_PROTOCOL:-auto}
+    networks:
+      - app_network
+    depends_on:
+      - nginx
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "localhost:2000", "ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped

@@ -761,6 +761,19 @@ services:
 
 `MEMCACHE_HOST=memcache` overrides the default `127.0.0.1` so both containers connect to the shared Memcached service.
 
+### Public access via Cloudflare Tunnel
+
+The Compose stack can be published on the internet with no inbound ports by adding the
+`docker-compose.cloudflare.yml` overlay (a `cloudflared` container that connects outbound to
+Cloudflare and forwards to `nginx:80`):
+
+```bash
+scripts/cloudflare-tunnel.sh up      # named tunnel (CLOUDFLARE_TUNNEL_TOKEN in .env)
+scripts/cloudflare-tunnel.sh quick   # temporary https://*.trycloudflare.com URL, no account
+```
+
+See [docs/deploy-cloudflare-tunnel.md](docs/deploy-cloudflare-tunnel.md) for setup, troubleshooting and rollback.
+
 ---
 
 ## 13. Nginx
