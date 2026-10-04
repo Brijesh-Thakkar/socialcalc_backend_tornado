@@ -26,6 +26,7 @@ import uuid
 import json
 import cloud.storage.storage
 import cloud.authenticate.user
+from handlers import sheets_api
 
 from tornado.options import define, options
 from util.amazon_ses import AmazonSES,EmailMessage
@@ -99,6 +100,7 @@ class Application(tornado.web.Application):
             (r"/amazonwebapp/(?P<param1>[^\/]+)/randomCode/(?P<param2>[^\/]+)", AmazonWebAppHandler),
             (r"/finrecord", FinanceRecordKeeper),
             (r"/bisrecord", BusinessRecordKeeper),
+            *sheets_api.ROUTES,   # JSON Sheets API (/api/*)
             (r"/sync", sync.SyncHandler),
 
 
