@@ -139,7 +139,7 @@ out=$(sign "$TMP/inject.auth" "$TMP/b6.json"); echo "     $out"
   && pass "provenance refuses a recipient sourced from untrusted text" || fail "injected recipient"
 
 step "7. bad agent key"
-echo "Authorization: Bearer yk_this_is_not_a_valid_key" > "$TMP/bad.auth"
+echo "Authorization: Bearer not-a-valid-mandate-key" > "$TMP/bad.auth"
 out=$(sign "$TMP/bad.auth" "$TMP/b3.json"); echo "     $out"
 [[ "${out%% *}" == 401 ]] && pass "unknown key -> 401 refuse" || fail "bad key"
 

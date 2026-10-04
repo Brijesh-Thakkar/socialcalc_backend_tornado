@@ -16,12 +16,12 @@ fail-closed path work end to end; **settlement does not** (see [Blocked](#next-s
 ## Architecture
 
 ```
- AI agent (holds only a yk_ mandate key, never a signing key)
+ AI agent (holds only a mandate key, never a signing key)
    │ 1. GET /x402/sheet/<id>/export ─────────────► nginx ─► Tornado (app1|app2)
    │ ◄──────────── 402 + PAYMENT-REQUIRED (x402 v2, built from env, deterministic)
    │
    │ 2. POST /omamori/sign  {resourceUrl, paymentRequiredHeader, intentId, context}
-   ▼    Authorization: Bearer yk_...
+   ▼    Authorization: Bearer <mandate key>
  nginx ─► Tornado OmamoriSignHandler
             │  size/JSON checks → SSRF guard (path must be /x402/sheet/<id>/export)
             │  forwards ONLY Authorization, rebuilt resourceUrl on OMAMORI_RESOURCE_BASE_URL
@@ -70,7 +70,7 @@ $ curl -si http://localhost:8080/x402/sheet/demo-budget/export | grep -i payment
 
 ### `POST /omamori/sign`
 
-Request (`Content-Type: application/json`, ≤ 64 KB, `Authorization: Bearer yk_…`):
+Request (`Content-Type: application/json`, ≤ 64 KB, `Authorization: Bearer <mandate key>`):
 
 ```json
 {

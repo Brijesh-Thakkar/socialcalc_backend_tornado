@@ -25,7 +25,7 @@ from handlers.omamori import (
 PAY_TO = "0x" + "ab" * 20
 SELLER = "seller@example.com"
 SHEETS = {"budget", "Q3-report_v2"}
-AUTH = "Bearer yk_test_not_a_real_key_0123456789"
+AUTH = "Bearer test-agent-key-not-real-0123456789"
 SIGNATURE = "sig_test_value_never_logged_abcdef"
 CHALLENGE_HEADER = "eyJ0ZXN0IjoidmFsdWUifQ=="
 
