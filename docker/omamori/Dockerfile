@@ -14,9 +14,13 @@ ADD ${OMAMORI_REPO}/archive/${OMAMORI_REF}.tar.gz /tmp/omamori.tar.gz
 WORKDIR /app
 RUN tar -xzf /tmp/omamori.tar.gz --strip-components=1 -C /app && rm /tmp/omamori.tar.gz \
     && test -f apps/firewall/index.ts
-# Only the firewall workspace (and @yakusoku/shared, which it depends on) --
-# that is also everything apps/agent/scripts/dev-intent.ts needs for the demo.
+# Only the firewall workspace (and @yakusoku/shared, which it depends on).
+# Bun's isolated linker keeps those deps in apps/firewall/node_modules, so the
+# demo's mandate helper (apps/agent/scripts/dev-intent.ts, which only imports
+# viem and @yakusoku/shared) resolves them through a symlink instead of a
+# second, much larger install of the whole agent workspace.
 RUN bun install --frozen-lockfile --production --filter @yakusoku/firewall \
+    && ln -s ../firewall/node_modules apps/agent/node_modules \
     && mkdir -p /data && chown -R bun:bun /app /data
 USER bun
 ENV FIREWALL_DATA_DIR=/data PORT=4001
