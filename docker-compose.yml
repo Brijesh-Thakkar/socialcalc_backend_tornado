@@ -12,15 +12,19 @@ services:
   # ── Local S3-compatible storage (MinIO) — used for local dev and CI ────────
   # Production deployments: remove this service and set real AWS credentials in .env
   minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
+    # minio/minio and minio/mc are gone from Docker Hub and quay.io/minio/minio now
+    # requires authentication, so there is no official public image. This is the last
+    # Bitnami build (frozen, receives no security updates) — fine for local dev/CI,
+    # NOT for production, which should use real S3 (see .env.example). It runs as
+    # uid 1001, so data lives in /bitnami/minio/data and the stock entrypoint is used.
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     expose:
       - "9000"
       - "9001"
     networks:
       - app_network
     volumes:
-      - minio_data:/data
+      - minio_data:/bitnami/minio/data
     environment:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin
@@ -33,20 +37,28 @@ services:
     restart: unless-stopped
 
   # ── One-shot init: creates required S3 buckets inside MinIO ───────────────
+  # minio/mc was removed from Docker Hub, so buckets are created with the S3 API
+  # via aws-cli. Idempotent: existing buckets are left untouched (private, like
+  # the previous `mc mb --ignore-existing`). Waits for MinIO to be healthy.
   createbuckets:
-    image: minio/mc:latest
+    image: amazon/aws-cli:2.17.0
     networks:
       - app_network
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 minioadmin minioadmin &&
-      mc mb --ignore-existing local/mc2-app-storage-useast1 &&
-      mc mb --ignore-existing local/aspiring-pdf-files &&
-      exit 0
-      "
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - AWS_DEFAULT_REGION=us-east-1
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for bucket in mc2-app-storage-useast1 aspiring-pdf-files; do
+          aws --endpoint-url http://minio:9000 s3api head-bucket --bucket "$$bucket" 2>/dev/null \
+            || aws --endpoint-url http://minio:9000 s3api create-bucket --bucket "$$bucket" \
+            || exit 1
+        done
 
   # ── Tornado application instance 1 ───────────────────────────────────────
   app1:
@@ -61,6 +73,15 @@ services:
       - MEMCACHE_HOST=memcache
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+      # Omamori x402 firewall (optional sidecar, `--profile omamori`). Without
+      # it the /omamori/* and /x402/* routes fail closed; nothing else changes.
+      - OMAMORI_FIREWALL_URL=${OMAMORI_FIREWALL_URL:-http://omamori-firewall:4001}
+      - OMAMORI_TIMEOUT_S=${OMAMORI_TIMEOUT_S:-15}
+      - OMAMORI_PAYTO_ADDRESS=${OMAMORI_PAYTO_ADDRESS:-}
+      - OMAMORI_SELLER_USER=${OMAMORI_SELLER_USER:-}
+      - OMAMORI_EXPORT_PRICE=${OMAMORI_EXPORT_PRICE:-10000}
+      - OMAMORI_RESOURCE_BASE_URL=${OMAMORI_RESOURCE_BASE_URL:-http://nginx}
+      - OMAMORI_PUBLIC_BASE_URL=${OMAMORI_PUBLIC_BASE_URL:-http://localhost:8080}
     depends_on:
       memcache:
         condition: service_started
@@ -85,6 +106,15 @@ services:
       - MEMCACHE_HOST=memcache
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+      # Omamori x402 firewall (optional sidecar, `--profile omamori`). Without
+      # it the /omamori/* and /x402/* routes fail closed; nothing else changes.
+      - OMAMORI_FIREWALL_URL=${OMAMORI_FIREWALL_URL:-http://omamori-firewall:4001}
+      - OMAMORI_TIMEOUT_S=${OMAMORI_TIMEOUT_S:-15}
+      - OMAMORI_PAYTO_ADDRESS=${OMAMORI_PAYTO_ADDRESS:-}
+      - OMAMORI_SELLER_USER=${OMAMORI_SELLER_USER:-}
+      - OMAMORI_EXPORT_PRICE=${OMAMORI_EXPORT_PRICE:-10000}
+      - OMAMORI_RESOURCE_BASE_URL=${OMAMORI_RESOURCE_BASE_URL:-http://nginx}
+      - OMAMORI_PUBLIC_BASE_URL=${OMAMORI_PUBLIC_BASE_URL:-http://localhost:8080}
     depends_on:
       memcache:
         condition: service_started
@@ -108,7 +138,7 @@ services:
 
   # ── Kubo IPFS daemon (block-storage backend for meshkit-sidecar-kubo) ─────
   kubo:
-    image: ipfs/kubo:latest
+    image: ipfs/kubo:v0.29.0
     expose:
       - "5001"   # RPC API — reachable by meshkit-sidecar-kubo inside the network
       - "4001"   # Swarm / P2P
@@ -154,6 +184,28 @@ services:
     restart: unless-stopped
 
   # ── Nginx reverse proxy (only service that binds a host port) ─────────────
+  # ── Omamori x402 pre-signature firewall (optional) ─────────────────────────
+  # Only started with `docker compose --profile omamori up`. Internal to
+  # app_network (expose, never a host port); reached only via Tornado's
+  # POST /omamori/sign. Keys live in docker/omamori/.env (gitignored), so they
+  # never enter the Tornado containers' environment.
+  omamori-firewall:
+    profiles: ["omamori"]
+    build: ./docker/omamori
+    expose:
+      - "4001"
+    env_file:
+      - path: ./docker/omamori/.env
+        required: false
+    environment:
+      - FIREWALL_DATA_DIR=/data
+      - PORT=4001
+    volumes:
+      - omamori_data:/data
+    networks:
+      - app_network
+    restart: unless-stopped
+
   nginx:
     image: nginx:1.27-alpine
     ports:
@@ -174,3 +226,4 @@ networks:
 volumes:
   minio_data:
   kubo_data:
+  omamori_data:

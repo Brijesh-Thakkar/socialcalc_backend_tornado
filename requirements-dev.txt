@@ -1,0 +1,3 @@
+# Unit-test tooling (not installed in the app image).
+tornado==6.5.2
+pytest==9.0.2

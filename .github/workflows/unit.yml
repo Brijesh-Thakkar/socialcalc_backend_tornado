@@ -1,0 +1,28 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [py3-tornado6-upgrade]
+  pull_request:
+    branches: [py3-tornado6-upgrade, main, staging]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install test dependencies
+        run: pip install -r requirements-dev.txt
+
+      # Keyless: the Omamori firewall is replaced by an in-process fake.
+      - name: Run pytest
+        run: python -m pytest -v

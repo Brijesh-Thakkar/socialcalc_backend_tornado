@@ -26,6 +26,7 @@ MC2 is a browser-based collaborative spreadsheet application built on Python 3 a
 18. [Verification Guide](#18-verification-guide)
 19. [Troubleshooting](#19-troubleshooting)
 20. [EC2 Deployment Guide](#20-ec2-deployment-guide)
+21. [Omamori x402 Firewall (optional)](#21-omamori-x402-firewall-optional)
 
 ---
 
@@ -1334,6 +1335,26 @@ Set this value in `.env` as `COOKIE_SECRET=<value>`. Both `app1` and `app2` cont
 
 ---
 
+## 21. Omamori x402 Firewall (optional)
+
+SocialCalc can sell a sheet export to AI agents over [x402](https://docs.x402.org/), guarded by the
+[Omamori](https://github.com/seetadev/yakusoku) pre-signature firewall running as an internal sidecar.
+It is **off by default**: a plain `docker compose up` (CI, the Cloudflare tunnel) is unchanged.
+
+```bash
+cp docker/omamori/.env.example docker/omamori/.env   # FIREWALL_PRIVATE_KEY: throwaway, unfunded key
+docker compose --profile omamori up -d --build
+scripts/omamori-demo.sh                              # keyless demo, PASS/FAIL per step
+```
+
+- `GET /x402/sheet/<id>/export` — x402 v2 `402` challenge (`501` if a payment is sent; settlement is not implemented)
+- `POST /omamori/sign` — the only route to the firewall; fail-closed (`refuse` on any error)
+
+Full architecture, status mapping, security notes and what still needs keys:
+[`docs/omamori-integration.md`](docs/omamori-integration.md).
+
+---
+
 ## Appendix: Environment Variables Reference
 
 | Variable | Required | Default | Notes |
@@ -1442,3 +1463,5 @@ You **must** set `PUBLIC_BASE_URL` when:
 | GET/POST | `/iconimg` | No | Icon image generation |
 | GET/POST | `/htmltopdf` | No | HTML to PDF conversion |
 | GET/POST | `/amazonwebapp/<p1>/randomCode/<p2>` | No | Amazon webapp handler |
+| GET | `/x402/sheet/<id>/export` | No | Omamori: x402 402 challenge for a paid sheet export (optional) |
+| POST | `/omamori/sign` | Agent key | Omamori: proxy to the internal firewall's `/sign` (optional) |

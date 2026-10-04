@@ -25,6 +25,7 @@ import uuid
 
 import json
 import cloud.storage.storage
+from handlers.omamori import ExportChallengeHandler, OmamoriSignHandler, SHEET_ID_PATTERN
 import cloud.authenticate.user
 
 from tornado.options import define, options
@@ -76,6 +77,8 @@ class Application(tornado.web.Application):
             (r"/meshkit-kubo/upload", MeshkitKuboSidecarHandler),
             (r"/meshkit-kubo/retrieve/(.*)", MeshkitKuboSidecarHandler),
             (r"/meshkit-kubo/list", MeshkitKuboSidecarHandler),
+            (r"/x402/sheet/(" + SHEET_ID_PATTERN + r")/export", ExportChallengeHandler),
+            (r"/omamori/sign", OmamoriSignHandler),
             (r"/pwreset",PwResetHandler),
             (r"/dropbox", DropBoxHandler),
             (r"/inapp", InAppHandler),
