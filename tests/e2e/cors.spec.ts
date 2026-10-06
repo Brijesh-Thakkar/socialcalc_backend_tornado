@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
  * CORS on /webapp and /htmltopdf (handlers/cors.py, driven by ALLOWED_ORIGINS).
  *
  * The stack's default allowlist is capacitor://localhost, http://localhost, https://localhost.
- * Set CORS_DEV_ORIGIN (e.g. http://localhost:5173) to also assert a dev-server origin that the
+ * Set CORS_DEV_ORIGIN (e.g. http://localhost:3000) to also assert a dev-server origin that the
  * stack was started with via ALLOWED_ORIGINS; the check is skipped when it is not set.
  */
 
