@@ -1540,6 +1540,9 @@ class IconImgHandler(BaseHandler):
         self.finish(dict(imgurl=imgurl,result="ok"))
 
 class HtmlToPdfHandler(CorsMixin, BaseHandler):
+    # Anonymous endpoint, historically open to every origin: "*" by default, never with credentials.
+    cors_env_var = "HTMLTOPDF_ALLOWED_ORIGINS"
+    cors_default_origins = "*"
     def exists_in_storage(self,fname):
         return cloud.storage.storage.existsItem(fname, PDF_BUCKET)
     def get_from_storage(self,fname):

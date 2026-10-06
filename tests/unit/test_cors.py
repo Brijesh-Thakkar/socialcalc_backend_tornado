@@ -25,6 +25,15 @@ class Anon(CorsMixin, tornado.web.RequestHandler):
         self.write("ok")
 
 
+class Pdf(CorsMixin, tornado.web.RequestHandler):
+    # Mirrors HtmlToPdfHandler's configuration.
+    cors_env_var = "HTMLTOPDF_ALLOWED_ORIGINS"
+    cors_default_origins = "*"
+
+    def get(self):
+        self.write("ok")
+
+
 class Boom(CorsMixin, tornado.web.RequestHandler):
     def get(self):
         raise tornado.web.HTTPError(400)
@@ -32,7 +41,7 @@ class Boom(CorsMixin, tornado.web.RequestHandler):
 
 class CorsTestBase(AsyncHTTPTestCase):
     def get_app(self):
-        return tornado.web.Application([(r"/creds", Creds), (r"/anon", Anon), (r"/boom", Boom)])
+        return tornado.web.Application([(r"/creds", Creds), (r"/anon", Anon), (r"/pdf", Pdf), (r"/boom", Boom)])
 
     def fetch_with(self, path, origin=None, method="GET", env=None, **kw):
         headers = dict(kw.pop("headers", {}))
@@ -111,6 +120,39 @@ class EnvConfigTest(CorsTestBase):
     def _origins(env):
         with mock.patch.dict(os.environ, env, clear=False):
             return allowed_origins()
+
+
+class HtmlToPdfCompatTest(CorsTestBase):
+    def setUp(self):
+        super().setUp()
+        for v in ("HTMLTOPDF_ALLOWED_ORIGINS", "ALLOWED_ORIGINS"):
+            os.environ.pop(v, None)
+
+    def test_default_is_open_star_without_credentials(self):
+        for origin in ("https://anything.example", "capacitor://localhost", None):
+            r = self.fetch_with("/pdf", origin)
+            self.assertEqual(r.headers["Access-Control-Allow-Origin"], "*")
+            self.assertNotIn("Access-Control-Allow-Credentials", r.headers)
+
+    def test_default_preflight_is_allowed_for_any_origin(self):
+        r = self.fetch_with("/pdf", "https://anything.example", method="OPTIONS",
+                            headers={"Access-Control-Request-Method": "POST"})
+        self.assertEqual(r.code, 204)
+        self.assertEqual(r.headers["Access-Control-Allow-Origin"], "*")
+        self.assertIn("POST", r.headers["Access-Control-Allow-Methods"])
+
+    def test_webapp_allowlist_does_not_affect_htmltopdf_and_vice_versa(self):
+        env = {"ALLOWED_ORIGINS": "http://localhost"}
+        self.assertEqual(self.fetch_with("/pdf", "https://x.example", env=env).headers["Access-Control-Allow-Origin"], "*")
+        self.assertNotIn("Access-Control-Allow-Origin", self.fetch_with("/creds", "https://x.example", env=env).headers)
+
+    def test_restricting_htmltopdf_via_its_own_env_var(self):
+        env = {"HTMLTOPDF_ALLOWED_ORIGINS": "http://localhost:3000"}
+        ok = self.fetch_with("/pdf", "http://localhost:3000", env=env)
+        self.assertEqual(ok.headers["Access-Control-Allow-Origin"], "http://localhost:3000")
+        self.assertNotIn("Access-Control-Allow-Credentials", ok.headers)
+        self.assertNotIn("Access-Control-Allow-Origin", self.fetch_with("/pdf", "https://evil.example", env=env).headers)
+        self.assertEqual(self.fetch_with("/pdf", "https://evil.example", method="OPTIONS", env=env).code, 403)
 
 
 if __name__ == "__main__":

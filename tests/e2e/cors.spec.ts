@@ -1,14 +1,15 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * CORS on /webapp and /htmltopdf (handlers/cors.py, driven by ALLOWED_ORIGINS).
+ * CORS on /webapp (strict allowlist, ALLOWED_ORIGINS, credentials) and /htmltopdf (open "*" by default,
+ * HTMLTOPDF_ALLOWED_ORIGINS, never credentials). See handlers/cors.py.
  *
  * The stack's default allowlist is capacitor://localhost, http://localhost, https://localhost.
  * Set CORS_DEV_ORIGIN (e.g. http://localhost:3000) to also assert a dev-server origin that the
  * stack was started with via ALLOWED_ORIGINS; the check is skipped when it is not set.
  */
 
-const ENDPOINTS = ['/webapp', '/htmltopdf'];
+const ENDPOINTS = ['/webapp'];
 const APP_ORIGINS = ['capacitor://localhost', 'http://localhost', 'https://localhost'];
 const DISALLOWED = ['https://evil.example', 'http://localhost.evil.example', 'null'];
 const DEV_ORIGIN = process.env.CORS_DEV_ORIGIN;
@@ -56,6 +57,28 @@ test.describe('CORS allowlist', () => {
     });
   }
 
+  test.describe('/htmltopdf stays open for backward compatibility', () => {
+    for (const origin of [...APP_ORIGINS, ...DISALLOWED]) {
+      test(`preflight from ${origin} gets "*" without credentials`, async ({ request }) => {
+        const res = await preflight(request, '/htmltopdf', origin);
+        expect(res.status()).toBe(204);
+        const h = res.headers();
+        expect(h['access-control-allow-origin']).toBe('*');
+        expect(h['access-control-allow-credentials']).toBeUndefined();
+        expect(h['access-control-allow-methods']).toContain('POST');
+        expect(h['access-control-allow-headers']).toMatch(/content-type/i);
+      });
+    }
+
+    test('requests with and without an Origin get "*"', async ({ request }) => {
+      for (const headers of [{ Origin: 'https://evil.example' }, {}] as Record<string, string>[]) {
+        const res = await request.get('/htmltopdf?fname=nope', { headers });
+        expect(res.headers()['access-control-allow-origin']).toBe('*');
+        expect(res.headers()['access-control-allow-credentials']).toBeUndefined();
+      }
+    });
+  });
+
   test('/webapp actual request from an allowed origin: ACAO echoed + credentials', async ({ request }) => {
     const res = await request.get('/webapp?action=login', { headers: { Origin: 'capacitor://localhost' } });
     expect(res.status()).toBe(200);
@@ -80,14 +103,14 @@ test.describe('CORS allowlist', () => {
     expect(res.headers()['access-control-allow-origin']).toBe('http://localhost');
   });
 
-  test('/htmltopdf is anonymous: allowed origin gets ACAO but no credentials', async ({ request }) => {
+  test('/htmltopdf POST: ACAO "*" and no credentials', async ({ request }) => {
     const res = await request.post('/htmltopdf', {
       headers: { Origin: 'https://localhost' },
       form: { content: '<html><body><p>cors check</p></body></html>' },
     });
     expect(res.status()).toBe(200);
     const h = res.headers();
-    expect(h['access-control-allow-origin']).toBe('https://localhost');
+    expect(h['access-control-allow-origin']).toBe('*');
     expect(h['access-control-allow-credentials']).toBeUndefined();
   });
 
@@ -99,6 +122,7 @@ test.describe('CORS allowlist', () => {
         if (h['access-control-allow-credentials'] === 'true') {
           expect(h['access-control-allow-origin']).not.toBe('*');
           expect(h['access-control-allow-origin']).toBe(origin);
+          expect(path).toContain('/webapp'); // only /webapp may send credentials
         }
       }
     }
