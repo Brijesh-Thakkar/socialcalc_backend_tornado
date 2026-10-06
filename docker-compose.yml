@@ -73,7 +73,10 @@ services:
       - MEMCACHE_HOST=memcache
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+      - FASTAPI_INTEROP_URL=http://fastapi-interop:5053
     depends_on:
+      fastapi-interop:
+        condition: service_healthy
       memcache:
         condition: service_started
       createbuckets:
@@ -97,7 +100,10 @@ services:
       - MEMCACHE_HOST=memcache
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+      - FASTAPI_INTEROP_URL=http://fastapi-interop:5053
     depends_on:
+      fastapi-interop:
+        condition: service_healthy
       memcache:
         condition: service_started
       createbuckets:
@@ -163,6 +169,30 @@ services:
       - PORT=4000
     networks:
       - app_network
+    restart: unless-stopped
+
+  # ── SocialCalc interop sidecar (FastAPI): spreadsheet import/export + PDF ──
+  # Tornado calls it over HTTP (handlers/interop.py). Built from the FastAPI repo; point
+  # FASTAPI_INTEROP_CONTEXT at a checkout of touch-calc-fastapi-backend-libp2p-testing
+  # (branch feature/socialcalc-fastapi-interop). Internal network only, no host port.
+  fastapi-interop:
+    build:
+      context: ${FASTAPI_INTEROP_CONTEXT:-../touch-calc-fastapi-backend-libp2p-testing}
+      dockerfile: Dockerfile.interop
+    expose:
+      - "5053"
+    environment:
+      - INTEROP_SHARED_SECRET=${INTEROP_SHARED_SECRET:?set INTEROP_SHARED_SECRET in .env (see .env.example)}
+      - INTEROP_ENGINE=python
+      - INTEROP_MAX_UPLOAD_MB=${INTEROP_MAX_UPLOAD_MB:-20}
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5053/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
     restart: unless-stopped
 
   # ── Nginx reverse proxy (only service that binds a host port) ─────────────

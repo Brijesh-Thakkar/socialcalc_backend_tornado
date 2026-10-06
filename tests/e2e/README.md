@@ -11,6 +11,7 @@ This directory contains the Playwright-based end-to-end (E2E) testing suite for 
 - **`tests/e2e/landing.spec.ts`**: Validates the landing page load and redirection behavior.
 - **`tests/e2e/auth.spec.ts`**: Tests the complete registration, login, and logout lifecycle.
 - **`tests/e2e/spreadsheet.spec.ts`**: Tests opening a sheet, editing cell data, saving it as a new file (creating a new sheet), and reloading the sheet to ensure persistence.
+- **`tests/e2e/interop-fastapi.spec.ts`**: M1. Tornado `/interop/*` endpoints against the `fastapi-interop` sidecar with the real files in `tests/e2e/fixtures/interop/` (import xls/xlsx/csv/html, open in the editor, export xlsx/xls/csv/html/pdf to S3 and download from both app containers, error mapping 502/504). Needs the `fastapi-interop` service (see `docker-compose.yml`) and `pdftotext` for the PDF text assertions (skipped if absent). A shell equivalent is `tests/interop/m1-curl.sh`.
 
 ---
 

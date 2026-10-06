@@ -15,6 +15,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Build context of the fastapi-interop sidecar (docker-compose.yml: FASTAPI_INTEROP_CONTEXT)
+      - name: Checkout fastapi-interop sidecar source
+        uses: actions/checkout@v4
+        with:
+          repository: seetadev/touch-calc-fastapi-backend-libp2p-testing
+          ref: feature/socialcalc-fastapi-interop   # TODO: switch to main once the FastAPI PR is merged
+          path: fastapi-interop-src
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -23,6 +31,9 @@ jobs:
           cp .env.example .env
           # Override with CI-safe values
           sed -i 's/generate_a_random_secret_here/ci-test-cookie-secret-not-real/g' .env
+          echo "FASTAPI_INTEROP_CONTEXT=./fastapi-interop-src" >> .env
+          # short sidecar timeouts so the 504 test does not wait for the 60 s / 120 s defaults
+          sed -i 's/^INTEROP_IMPORT_TIMEOUT=.*/INTEROP_IMPORT_TIMEOUT=8/; s/^INTEROP_EXPORT_TIMEOUT=.*/INTEROP_EXPORT_TIMEOUT=8/' .env
           cp meshkit-service/.env.example meshkit-service/.env
           cp meshkit-sidecar/.env.example meshkit-sidecar/.env
           # Point meshkit-sidecar at the MinIO service already in docker-compose
