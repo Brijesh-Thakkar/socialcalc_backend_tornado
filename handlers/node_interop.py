@@ -26,6 +26,8 @@ import json
 import logging
 import os
 
+import urllib.parse
+
 import tornado.escape
 import tornado.httpclient
 
@@ -103,7 +105,7 @@ class NodeOpenHandler(NodeSheetHandler):
         existing = cloud.storage.storage.getFile(path)
         if existing is not None and self.get_argument("overwrite", "") != "yes":
             return self.fail(409, "exists", "a sheet named %r already exists; pass overwrite=yes or as=<other name>" % target)
-        resp = await self.call_node("GET", "/v1/sheets/%s?owner=%s" % (tornado.escape.url_escape(name), tornado.escape.url_escape(user)),
+        resp = await self.call_node("GET", "/v1/sheets/%s?owner=%s" % (urllib.parse.quote(name, safe=""), urllib.parse.quote(user, safe="")),
                                     _new_request_id(), NODE_REQUEST_TIMEOUT, headers=self.token_headers())
         if resp is None:
             return
