@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+// Compose project name; override when the stack runs under a different project.
+const PROJECT = process.env.COMPOSE_PROJECT_NAME || 'tornado_version';
+
 /**
  * Nginx / Proxy Tests
  *
@@ -57,7 +60,7 @@ test.describe('Nginx Reverse Proxy', () => {
 
   test('nginx config is valid (nginx -t passes)', async () => {
     const { execSync } = require('child_process');
-    const out = execSync('docker exec tornado_version-nginx-1 nginx -t 2>&1', {
+    const out = execSync(`docker exec ${PROJECT}-nginx-1 nginx -t 2>&1`, {
       encoding: 'utf8',
     });
     expect(out).toContain('syntax is ok');
