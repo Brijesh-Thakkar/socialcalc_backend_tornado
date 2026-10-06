@@ -76,6 +76,9 @@ class Application(tornado.web.Application):
             (r"/meshkit-kubo/upload", MeshkitKuboSidecarHandler),
             (r"/meshkit-kubo/retrieve/(.*)", MeshkitKuboSidecarHandler),
             (r"/meshkit-kubo/list", MeshkitKuboSidecarHandler),
+            (r"/meshkit-helia/upload", MeshkitHeliaSidecarHandler),
+            (r"/meshkit-helia/retrieve/(.*)", MeshkitHeliaSidecarHandler),
+            (r"/meshkit-helia/list", MeshkitHeliaSidecarHandler),
             (r"/pwreset",PwResetHandler),
             (r"/dropbox", DropBoxHandler),
             (r"/inapp", InAppHandler),
@@ -1183,6 +1186,7 @@ class DownloadFileHandler(BaseHandler):
 
 MESHKIT_BASE = "http://meshkit-service:4000"
 MESHKIT_KUBO_SIDECAR_URL = os.getenv("MESHKIT_KUBO_SIDECAR_URL", "http://localhost:5051")
+MESHKIT_HELIA_SIDECAR_URL = os.getenv("MESHKIT_HELIA_SIDECAR_URL", "http://localhost:5052")
 
 class MeshkitHandler(BaseHandler):
     def set_default_headers(self):
@@ -1320,6 +1324,71 @@ class MeshkitKuboSidecarHandler(BaseHandler):
                 # 504 = sidecar retrieve timed out → propagate as 504
                 status = 502 if e.code == 599 else (504 if e.code == 504 else 500)
                 logging.error("meshkit-kubo retrieve/list error: %s", e)
+                self.set_status(status)
+                self.write({"error": str(e)})
+
+
+class MeshkitHeliaSidecarHandler(BaseHandler):
+    """Proxy handler for the meshkit-sidecar-helia Node service (port 5052).
+    In-process Helia node — parallel to MeshkitKuboSidecarHandler.
+    Routes: /meshkit-helia/upload, /meshkit-helia/retrieve/{cid}, /meshkit-helia/list
+    """
+
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def options(self, *args):
+        self.set_status(204)
+        self.finish()
+
+    @tornado.gen.coroutine
+    def post(self):
+        # POST /meshkit-helia/upload — forward raw bytes to sidecar
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            req = tornado.httpclient.HTTPRequest(
+                "%s/upload" % MESHKIT_HELIA_SIDECAR_URL, method="POST",
+                headers={"Content-Type": "application/octet-stream"},
+                body=self.request.body or b""
+            )
+            resp = yield http.fetch(req)
+            self.set_header("Content-Type", "application/json")
+            self.write(resp.body)
+        except tornado.httpclient.HTTPClientError as e:
+            status = 502 if e.code == 599 else (504 if e.code == 504 else 500)
+            logging.error("meshkit-helia upload error: %s", e)
+            self.set_status(status)
+            self.write({"error": str(e)})
+
+    @tornado.gen.coroutine
+    def get(self, cid=None):
+        # GET /meshkit-helia/retrieve/{cid}  or  GET /meshkit-helia/list
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            if cid is not None:
+                resp = yield http.fetch(
+                    "%s/retrieve/%s" % (MESHKIT_HELIA_SIDECAR_URL, cid)
+                )
+                self.set_header(
+                    "Content-Type",
+                    resp.headers.get("Content-Type", "application/octet-stream")
+                )
+                self.write(resp.body)
+            else:
+                resp = yield http.fetch("%s/list" % MESHKIT_HELIA_SIDECAR_URL)
+                self.set_header("Content-Type", "application/json")
+                self.write(resp.body)
+        except tornado.httpclient.HTTPClientError as e:
+            if e.code == 404:
+                self.set_status(404)
+                self.write({"error": "not found"})
+            else:
+                # 599 = sidecar unreachable → 502
+                # 504 = sidecar retrieve timed out → propagate as 504
+                status = 502 if e.code == 599 else (504 if e.code == 504 else 500)
+                logging.error("meshkit-helia retrieve/list error: %s", e)
                 self.set_status(status)
                 self.write({"error": str(e)})
 

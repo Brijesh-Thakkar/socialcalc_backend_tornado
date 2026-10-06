@@ -39,6 +39,7 @@ import base64
 import sync
 
 import asyncio
+import shutil
 
 #import util.ystockquote
 #import util.simpledb
@@ -46,7 +47,7 @@ import asyncio
 
 channels = {}
 
-define("port", default=8080, help="run on the given port", type=int)
+define("port", default=8888, help="run on the given port", type=int)
 #define("mysql_host", default="127.0.0.1:3306", help="database host")
 #define("mysql_database", default="aspiringinvestments", help="database name")
 #define("mysql_user", default="ai", help="database user")
@@ -54,8 +55,10 @@ define("port", default=8080, help="run on the given port", type=int)
   
 HTMLTOPDF_BASE = os.environ.get(
     "HTMLTOPDF_BASE",
-    "/home/ubuntu/tmp"
+    os.path.join(os.path.dirname(__file__), "local_uploads")
 )
+LOCAL_UPLOADS = os.path.join(os.path.dirname(__file__), "local_uploads")
+LOCAL_HOME = os.path.join(os.path.dirname(__file__), "home")
 PDF_BUCKET = os.getenv(
     "PDF_S3_BUCKET",
     "aspiring-pdf-files"
@@ -85,6 +88,7 @@ class Application(tornado.web.Application):
             (r"/register",UserRegisterHandler),
             (r"/lostpw",UserLostPasswordHandler),
             (r"/webapp",WebAppHandler),
+            (r"/(?:webapp|api)/(login|register)", WebAppHandler),
             (r"/meshkit", MeshkitHandler),
             (r"/meshkit/upload", MeshkitSidecarHandler),
             (r"/meshkit/retrieve/(.*)", MeshkitSidecarHandler),
@@ -92,6 +96,9 @@ class Application(tornado.web.Application):
             (r"/meshkit-kubo/upload", MeshkitKuboSidecarHandler),
             (r"/meshkit-kubo/retrieve/(.*)", MeshkitKuboSidecarHandler),
             (r"/meshkit-kubo/list", MeshkitKuboSidecarHandler),
+            (r"/meshkit-helia/upload", MeshkitHeliaSidecarHandler),
+            (r"/meshkit-helia/retrieve/(.*)", MeshkitHeliaSidecarHandler),
+            (r"/meshkit-helia/list", MeshkitHeliaSidecarHandler),
             (r"/pwreset",PwResetHandler),
             (r"/dropbox", DropBoxHandler),
             (r"/inapp", InAppHandler),
@@ -100,6 +107,7 @@ class Application(tornado.web.Application):
             (r"/finrecord", FinanceRecordKeeper),
             (r"/bisrecord", BusinessRecordKeeper),
             (r"/sync", sync.SyncHandler),
+            (r"/uploads/(.*)", tornado.web.StaticFileHandler, {"path": LOCAL_UPLOADS}),
 
 
             #(r"/multisheet", MultiSheetHandler),
@@ -158,6 +166,58 @@ class Application(tornado.web.Application):
         self.mc = memcache.Client([memcache_host], debug=0)
 
 class BaseHandler(tornado.web.RequestHandler):
+    def wants_json(self):
+        return (self.request.headers.get("Content-Type", "").split(";", 1)[0].lower() == "application/json"
+                or "application/json" in self.request.headers.get("Accept", ""))
+
+    def ensure_local_user_directory(self, user):
+        os.makedirs(LOCAL_HOME, exist_ok=True)
+        safe_user = urllib.parse.quote(user, safe="@._-")
+        os.makedirs(os.path.join(LOCAL_HOME, safe_user), exist_ok=True)
+
+    def prepare(self):
+        """Expose JSON fields through Tornado's normal get_argument API too."""
+        content_type = self.request.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+        if content_type != "application/json" or not self.request.body:
+            return
+        try:
+            payload = json.loads(self.request.body.decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("JSON request body must be an object")
+            for key, value in payload.items():
+                if value is not None:
+                    self.request.arguments[str(key)] = [str(value).encode("utf-8")]
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+            self.set_status(400)
+            self.finish({"result": "fail", "status": "error", "data": "Invalid JSON body: %s" % exc})
+
+    def set_cors_headers(self):
+        origin = self.request.headers.get("Origin", "")
+        try:
+            parsed_origin = urllib.parse.urlsplit(origin)
+            allowed_origin = parsed_origin.scheme == "http" and parsed_origin.hostname in ("localhost", "127.0.0.1")
+        except (TypeError, ValueError):
+            allowed_origin = False
+        if allowed_origin:
+            self.set_header("Access-Control-Allow-Origin", origin)
+            self.set_header("Access-Control-Allow-Credentials", "true")
+        self.set_header("Vary", "Origin")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept")
+
+    def set_default_headers(self):
+        self.set_cors_headers()
+
+    def write_error(self, status_code, **kwargs):
+        # Tornado invokes write_error for uncaught handler exceptions as well as
+        # explicit send_error calls. Reapply CORS so the browser can see the error.
+        self.set_cors_headers()
+        super().write_error(status_code, **kwargs)
+
+    def options(self, *args, **kwargs):
+        self.set_status(200)
+        self.finish()
+
     @property
     def db(self):
         return self.application.db
@@ -195,16 +255,30 @@ class UserLoginHandler(BaseHandler):
         self.render("userlogin.html", argument=argument)
     def post(self):
         # verify user login
-        user = self.get_argument('email')
-        password = self.get_argument('password')
+        user = self.get_argument('email', default=self.get_argument('uuid', default=self.get_argument('username', default=''))).strip()
+        password = self.get_argument('password', default='')
+        if not user or not password:
+            self.set_status(400)
+            if self.wants_json():
+                self.finish({"status": "error", "result": "fail", "data": "email/username and password are required"})
+            else:
+                self.redirect("/login")
+            return
         logging.info(user)
         if cloud.authenticate.user.authenticate_user(user,password):
             print("authenticate succeeded")
             self.set_current_user(user)
-            self.redirect("/save")
+            if self.wants_json():
+                self.finish({"status": "ok", "result": "ok", "user": user})
+            else:
+                self.redirect("/save")
         else:
             print("authenticate failed")
-            self.redirect("/login")
+            self.set_status(401)
+            if self.wants_json():
+                self.finish({"status": "error", "result": "fail", "data": "authfail"})
+            else:
+                self.redirect("/login")
 
 class UserLogoutHandler(BaseHandler):
     def get(self):
@@ -222,18 +296,49 @@ class UserRegisterHandler(BaseHandler):
         argument['user'] = None        
         self.render("userregister.html", argument=argument)
     def post(self):
-        user = self.get_argument('email')
-        password = self.get_argument('password')
+        user = self.get_argument('email', default=self.get_argument('uuid', default=self.get_argument('username', default=''))).strip()
+        password = self.get_argument('password', default='')
+        if not user or not password:
+            self.set_status(400)
+            if self.wants_json():
+                self.finish({"status": "error", "result": "fail", "data": "email/username and password are required"})
+            else:
+                self.redirect("/register")
+            return
         logging.info(user)
         if cloud.authenticate.user.user_exists(user):
+            if self.wants_json():
+                self.set_status(409)
+                self.finish({"status": "error", "result": "exist", "data": "user already exists"})
+                return
             # user already exists
             argument = {}
             argument['user'] = None            
             argument['reguser'] = user
             self.render("userregister-exists.html", argument=argument)
             return
-        cloud.authenticate.user.create_user(user,password)
+        try:
+            self.ensure_local_user_directory(user)
+            cloud.authenticate.user.create_user(user,password)
+        except OSError as exc:
+            logging.exception("Could not create local user directory")
+            self.set_status(500)
+            if self.wants_json():
+                self.finish({"status": "error", "result": "fail", "data": str(exc)})
+            else:
+                self.redirect("/register")
+            return
+        if not cloud.authenticate.user.user_exists(user):
+            self.set_status(500)
+            if self.wants_json():
+                self.finish({"status": "error", "result": "fail", "data": "registration_storage_error"})
+            else:
+                self.redirect("/register")
+            return
         self.set_current_user(user)        
+        if self.wants_json():
+            self.finish({"status": "ok", "result": "ok", "user": user})
+            return
         argument = {}
         argument['user'] = user
         self.render("userregister-ok.html", argument=argument)
@@ -446,10 +551,23 @@ class SearchHandler(BaseHandler):
 class WebAppHandler(BaseHandler):
     # add error cases also
     def get_user_id(self):
-        return self.get_argument("uuid")
-    def get(self):
+        for name in ("uuid", "email", "username", "user"):
+            value = self.get_argument(name, default=None)
+            if value:
+                return value.strip()
+        return None
+
+    def post(self, *path_args):
+        action = self.get_argument('action', default=(path_args[0] if path_args else None))
+        if action not in ("savefile", "savecurrentfile", "getfile", "deletefile", "listdir", "login", "logout", "register", "inapp"):
+            self.set_status(400)
+            self.finish({"result": "fail", "status": "error", "data": "Missing or unsupported action"})
+            return
+        self._post_action(action)
+
+    def get(self, *path_args):
         # display all sheets
-        action = self.get_argument('action')
+        action = self.get_argument('action', default=(path_args[0] if path_args else None))
         # check login or no
         if action == "login":
             user = self.get_current_user()
@@ -458,7 +576,7 @@ class WebAppHandler(BaseHandler):
                self.finish(dict(result="fail"))
                return
             logging.info("user "+user)
-            self.finish(dict(result="ok"))
+            self.finish({"result": "ok", "status": "ok", "user": user})
         if action == "getInapp":
             app = self.get_argument('appname')
             user = self.get_current_user()
@@ -512,9 +630,11 @@ class WebAppHandler(BaseHandler):
             save_count = message['own'] - message['consumed']
             #logging.info(save_count)
             return save_count
+
+    def _post_action(self, action):
+        # Action handlers consume fields through get_argument, including JSON fields
+        # normalized by BaseHandler.prepare.
             
-    def post(self):
-        action = self.get_argument('action')
         # save file starts
         if action == "savefile":
             #time.sleep(240)
@@ -636,90 +756,95 @@ class WebAppHandler(BaseHandler):
             self.finish(dict(data=entries,result="ok"))
         if action == "login":
             user = self.get_user_id()
-            password = self.get_argument('password')
-            app = self.get_argument('appname')
+            password = self.get_argument('password', default='')
+            app = self.get_argument('appname', default='')
+            device = self.get_argument('deviceId', default='')
+            if not user or not password:
+                self.set_status(400)
+                self.finish({"result": "fail", "status": "error", "data": "username/email and password are required"})
+                return
             if cloud.authenticate.user.authenticate_user(user, password):
                 self.set_current_user(user)
-                device = self.get_argument('deviceId')
-                path1 = ["home",user,"securestore","device"]
-                dirpath = ["home",user,"securestore"]
-                dirobj1 = cloud.storage.storage.getFile(dirpath)
-                if (not dirobj1) or (len(dirobj1.files) == 0):
-                   cloud.storage.storage.createDir(dirpath)
-                fileobj1 = cloud.storage.storage.getFile(path1)
-                if fileobj1 == None:
-                   cloud.storage.storage.createFile(path1,device)
-                else:
-                    filedata = fileobj1.data
-                    filesdata = filedata.split(',')
-                    ctr = 0
-                    for i in range(0,len(filesdata)):
-                        fnme = filesdata[i]
-                        if device == fnme:
-                           ctr+=1
-                    if ctr==0:
-                        device += ","+fileobj1.data
-                        cloud.storage.storage.updateFile(path1,device)
-                path = ["home",user,"securestore","ios"]
-                dirobj = cloud.storage.storage.getFile(dirpath)
-                if (not dirobj) or (len(dirobj.files) == 0):
-                   cloud.storage.storage.createDir(dirpath)
-                if app != None:
-                   fileobj = cloud.storage.storage.getFile(path)
-                   if fileobj == None:
-                      cloud.storage.storage.createFile(path,app)
-                      self.finish(dict(result="ok"))
-                   else:
-                      filedata = fileobj.data
-                      filesdata = filedata.split(',')
-                      for i in range(0,len(filesdata)):
-                        fnme = filesdata[i]
-                        if app == fnme:
-                           self.finish(dict(result="ok"))
-                           return
-                      app += ","+fileobj.data
-                      cloud.storage.storage.updateFile(path,app)
-                      self.finish(dict(result="ok"))
+                try:
+                    self.ensure_local_user_directory(user)
+                    dirpath = ["home", user, "securestore"]
+                    if not cloud.storage.storage.getFile(dirpath):
+                        cloud.storage.storage.createDir(dirpath)
+                    path1 = dirpath + ["device"]
+                    if device:
+                        fileobj1 = cloud.storage.storage.getFile(path1)
+                        if fileobj1 is None:
+                            cloud.storage.storage.createFile(path1, device)
+                        elif device not in fileobj1.data.split(','):
+                            cloud.storage.storage.updateFile(path1, device + "," + fileobj1.data)
+                    if app:
+                        path = dirpath + ["ios"]
+                        fileobj = cloud.storage.storage.getFile(path)
+                        if fileobj is None:
+                            cloud.storage.storage.createFile(path, app)
+                        elif app not in fileobj.data.split(','):
+                            cloud.storage.storage.updateFile(path, app + "," + fileobj.data)
+                except Exception:
+                    logging.exception("Could not update local login metadata for %s", user)
+                self.finish({"result": "ok", "status": "ok", "user": user})
             else:
-                self.finish(dict(result="fail", data="authfail"))
+                self.set_status(401)
+                self.finish({"result": "fail", "status": "error", "data": "authfail"})
         if action == "logout":
             self.clear_cookie("user")
             self.finish(dict(result="ok"))
         if action == "register":
             user = self.get_user_id()
-            password = self.get_argument('password')
-            if cloud.authenticate.user.user_exists(user):
-                self.finish(dict(result="exist"))
+            password = self.get_argument('password', default='')
+            if not user or not password:
+                self.set_status(400)
+                self.finish({"result": "fail", "status": "error", "data": "username/email and password are required"})
                 return
-            cloud.authenticate.user.create_user(user, password)
+            if cloud.authenticate.user.user_exists(user):
+                self.set_status(409)
+                self.finish({"result": "exist", "status": "error", "data": "user already exists"})
+                return
+            try:
+                self.ensure_local_user_directory(user)
+                cloud.authenticate.user.create_user(user, password)
+            except OSError as exc:
+                logging.exception("Could not create local user directory")
+                self.set_status(500)
+                self.finish({"result": "fail", "status": "error", "data": str(exc)})
+                return
             # Verify the S3 write landed before proceeding
             if not cloud.authenticate.user.user_exists(user):
                 logging.error("register: user not found in S3 after create_user for %s", user)
-                self.finish(dict(result="fail", data="registration_storage_error"))
+                self.set_status(500)
+                self.finish({"result": "fail", "status": "error", "data": "registration_storage_error"})
                 return
             self.set_current_user(user)
-            app = self.get_argument("appname")
+            app = self.get_argument("appname", default="")
             path = ["home",user,"securestore","ios"]
             dirpath = ["home",user,"securestore"]
             dirobj = cloud.storage.storage.getFile(dirpath)
             if (not dirobj) or (len(dirobj.files) == 0):
                cloud.storage.storage.createDir(dirpath)
-            if app != None:
+            if app:
                fileobj = cloud.storage.storage.getFile(path)
                if fileobj == None:
                   cloud.storage.storage.createFile(path,app)
-                  self.finish(dict(result="ok"))
+                  self.finish({"result": "ok", "status": "ok", "user": user})
+                  return
                else:
                   filedata = fileobj.data
                   filesdata = filedata.split(',')
                   for i in range(0,len(filesdata)):
                     fnme = filesdata[i]
                     if app == fnme:
-                       self.finish(dict(result="ok"))
+                       self.finish({"result": "ok", "status": "ok", "user": user})
                        return
                   app += ","+fileobj.data
                   cloud.storage.storage.updateFile(path,app)
-                  self.finish(dict(result="ok"))
+                  self.finish({"result": "ok", "status": "ok", "user": user})
+                  return
+            self.finish({"result": "ok", "status": "ok", "user": user})
+            return
 
         if action == "inapp":
             user = self.get_current_user()
@@ -1251,14 +1376,13 @@ class DownloadFileHandler(BaseHandler):
 MESHKIT_BASE = "http://meshkit-service:4000"
 MESHKIT_SIDECAR_URL = os.getenv("MESHKIT_SIDECAR_URL", "http://localhost:5050")
 MESHKIT_KUBO_SIDECAR_URL = os.getenv("MESHKIT_KUBO_SIDECAR_URL", "http://localhost:5051")
+MESHKIT_HELIA_SIDECAR_URL = os.getenv("MESHKIT_HELIA_SIDECAR_URL", "http://localhost:5052")
 
 class MeshkitHandler(BaseHandler):
     def set_default_headers(self):
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        super().set_default_headers()
 
-    def options(self):
+    def options(self, *args, **kwargs):
         self.set_status(204)
         self.finish()
 
@@ -1330,11 +1454,9 @@ class MeshkitSidecarHandler(BaseHandler):
     """
 
     def set_default_headers(self):
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        super().set_default_headers()
 
-    def options(self, *args):
+    def options(self, *args, **kwargs):
         self.set_status(204)
         self.finish()
 
@@ -1393,11 +1515,9 @@ class MeshkitKuboSidecarHandler(BaseHandler):
     """
 
     def set_default_headers(self):
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        super().set_default_headers()
 
-    def options(self, *args):
+    def options(self, *args, **kwargs):
         self.set_status(204)
         self.finish()
 
@@ -1454,6 +1574,69 @@ class MeshkitKuboSidecarHandler(BaseHandler):
                 self.write({"error": str(e)})
 
 
+class MeshkitHeliaSidecarHandler(BaseHandler):
+    """Proxy handler for the meshkit-sidecar-helia Node service (port 5052).
+    In-process Helia node — parallel to MeshkitKuboSidecarHandler.
+    Routes: /meshkit-helia/upload, /meshkit-helia/retrieve/{cid}, /meshkit-helia/list
+    """
+
+    def set_default_headers(self):
+        super().set_default_headers()
+
+    def options(self, *args, **kwargs):
+        self.set_status(204)
+        self.finish()
+
+    @tornado.gen.coroutine
+    def post(self):
+        # POST /meshkit-helia/upload — forward raw bytes to sidecar
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            req = tornado.httpclient.HTTPRequest(
+                "%s/upload" % MESHKIT_HELIA_SIDECAR_URL, method="POST",
+                headers={"Content-Type": "application/octet-stream"},
+                body=self.request.body or b""
+            )
+            resp = yield http.fetch(req)
+            self.set_header("Content-Type", "application/json")
+            self.write(resp.body)
+        except tornado.httpclient.HTTPClientError as e:
+            status = 502 if e.code == 599 else (504 if e.code == 504 else 500)
+            logging.error("meshkit-helia upload error: %s", e)
+            self.set_status(status)
+            self.write({"error": str(e)})
+
+    @tornado.gen.coroutine
+    def get(self, cid=None):
+        # GET /meshkit-helia/retrieve/{cid}  or  GET /meshkit-helia/list
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            if cid is not None:
+                resp = yield http.fetch(
+                    "%s/retrieve/%s" % (MESHKIT_HELIA_SIDECAR_URL, cid)
+                )
+                self.set_header(
+                    "Content-Type",
+                    resp.headers.get("Content-Type", "application/octet-stream")
+                )
+                self.write(resp.body)
+            else:
+                resp = yield http.fetch("%s/list" % MESHKIT_HELIA_SIDECAR_URL)
+                self.set_header("Content-Type", "application/json")
+                self.write(resp.body)
+        except tornado.httpclient.HTTPClientError as e:
+            if e.code == 404:
+                self.set_status(404)
+                self.write({"error": "not found"})
+            else:
+                # 599 = sidecar unreachable → 502
+                # 504 = sidecar retrieve timed out → propagate as 504
+                status = 502 if e.code == 599 else (504 if e.code == 504 else 500)
+                logging.error("meshkit-helia retrieve/list error: %s", e)
+                self.set_status(status)
+                self.write({"error": str(e)})
+
+
 class IconImgHandler(BaseHandler):
     suffixes = {}
     def get_random_string(self,size):
@@ -1464,16 +1647,14 @@ class IconImgHandler(BaseHandler):
     def get_from_storage(self,fname):
         return cloud.storage.storage.getItem(fname, IMG_BUCKET)
     def set_default_headers(self):
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.set_header("Access-Control-Allow-Headers", "Content-Type")
-    def options(self):
+        super().set_default_headers()
+    def options(self, *args, **kwargs):
         self.set_status(204)
         self.finish()
     def get(self):
         logging.info("in iconimg get")
-        fname = self.get_argument('fname')
-        fullname = "/home/ubuntu/tmp/iconimg/%s"%fname
+        fname = os.path.basename(self.get_argument('fname'))
+        fullname = os.path.join(LOCAL_UPLOADS, fname)
         inpfile = fullname
         logging.info("fname=%s"%inpfile)        
         content_type = None
@@ -1507,7 +1688,7 @@ class IconImgHandler(BaseHandler):
 
         while True:
             fname=self.get_random_string(20)
-            fullfname = "/home/ubuntu/tmp/iconimg/%s"%fname
+            fullfname = os.path.join(LOCAL_UPLOADS, fname)
             if os.path.exists(fullfname):
                 continue
             elif self.exists_in_storage(fname):
@@ -1535,10 +1716,8 @@ class IconImgHandler(BaseHandler):
 
 class HtmlToPdfHandler(BaseHandler):
     def set_default_headers(self):
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.set_header("Access-Control-Allow-Headers", "Content-Type")
-    def options(self):
+        super().set_default_headers()
+    def options(self, *args, **kwargs):
         self.set_status(204)
         self.finish()
     def exists_in_storage(self,fname):
@@ -1550,7 +1729,7 @@ class HtmlToPdfHandler(BaseHandler):
         return ''.join(random.sample(char_set,size))
     def get(self):
         logging.info("in htmltopdf converter get")
-        fname = self.get_argument('fname')
+        fname = os.path.basename(self.get_argument('fname'))
         action = self.get_argument('action', default=None)
         if action and action == "preview":
             fullfname = os.path.join(HTMLTOPDF_BASE,"preview",fname)%fname
@@ -1631,13 +1810,19 @@ class HtmlToPdfHandler(BaseHandler):
         outfile = fullfname+".pdf"
         logging.info(outfile)
         logging.info(inpfile)
-        cmdname = "/usr/local/bin/wkhtmltopdf.sh"
-        output = subprocess.getoutput("%s %s %s"%(cmdname, inpfile, outfile))
+        cmdname = os.environ.get("WKHTMLTOPDF", "/usr/local/bin/wkhtmltopdf.sh")
+        if not os.path.isfile(cmdname):
+            cmdname = shutil.which("wkhtmltopdf") or cmdname
+        output = subprocess.getoutput("%s %s %s"%(cmdname, inpfile, outfile)) if os.path.isfile(cmdname) or shutil.which(cmdname) else "wkhtmltopdf not installed"
         if not os.path.exists(outfile):
             logging.error("wkhtmltopdf produced no output for %s: %s" % (fname, output))
         else:
             with open(outfile, "rb") as f:
                 pdf_bytes = f.read()
+            local_pdf = os.path.join(LOCAL_UPLOADS, fname + ".pdf")
+            os.makedirs(os.path.dirname(local_pdf), exist_ok=True)
+            with open(local_pdf, "wb") as f:
+                f.write(pdf_bytes)
             if cloud.storage.storage.putItem(fname, pdf_bytes, PDF_BUCKET):
                 logging.info("uploaded pdf %s to s3" % fname)
             else:

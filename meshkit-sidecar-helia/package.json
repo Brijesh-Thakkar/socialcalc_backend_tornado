@@ -1,0 +1,22 @@
+{
+  "name": "meshkit-sidecar-helia",
+  "version": "1.0.0",
+  "description": "Thin HTTP sidecar with in-process Helia node — filesystem-backed IPFS storage",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@helia/unixfs": "^4.0.0",
+    "blockstore-fs": "^2.0.0",
+    "datastore-fs": "^10.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helia": "^4.0.0",
+    "multiformats": "^13.0.0"
+  }
+}

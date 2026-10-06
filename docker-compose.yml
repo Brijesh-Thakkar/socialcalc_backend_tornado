@@ -73,6 +73,7 @@ services:
       - MEMCACHE_HOST=memcache
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+      - MESHKIT_HELIA_SIDECAR_URL=http://meshkit-sidecar-helia:5052
     depends_on:
       memcache:
         condition: service_started
@@ -81,6 +82,8 @@ services:
       meshkit-sidecar:
         condition: service_started
       meshkit-sidecar-kubo:
+        condition: service_started
+      meshkit-sidecar-helia:
         condition: service_started
     restart: unless-stopped
 
@@ -97,6 +100,7 @@ services:
       - MEMCACHE_HOST=memcache
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+      - MESHKIT_HELIA_SIDECAR_URL=http://meshkit-sidecar-helia:5052
     depends_on:
       memcache:
         condition: service_started
@@ -105,6 +109,8 @@ services:
       meshkit-sidecar:
         condition: service_started
       meshkit-sidecar-kubo:
+        condition: service_started
+      meshkit-sidecar-helia:
         condition: service_started
     restart: unless-stopped
 
@@ -153,6 +159,22 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ── MeshKit Helia sidecar (in-process Helia node, no separate daemon) ──────
+  meshkit-sidecar-helia:
+    build: ./meshkit-sidecar-helia
+    expose:
+      - "5052"
+    environment:
+      - MESHKIT_HELIA_SIDECAR_PORT=5052
+      - HELIA_BLOCKSTORE_PATH=/data/helia/blocks
+      - HELIA_DATASTORE_PATH=/data/helia/datastore
+      - HELIA_CIDS_PATH=/data/helia/cids.json
+    volumes:
+      - helia_data:/data/helia
+    networks:
+      - app_network
+    restart: unless-stopped
+
   # ── MeshKit IPFS proxy ────────────────────────────────────────────────────
   meshkit-service:
     build: ./meshkit-service
@@ -186,3 +208,4 @@ networks:
 volumes:
   minio_data:
   kubo_data:
+  helia_data:

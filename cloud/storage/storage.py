@@ -49,6 +49,19 @@ else:
         config=Config(s3={'addressing_style': 'path'}),
     )
 AspiringStorageBucket = "mc2-app-storage-useast1"
+_local_root = os.path.abspath(os.environ.get(
+    "LOCAL_UPLOADS_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "local_uploads")
+))
+_local_mode = not (aws_access_key and aws_secret_key) and not aws_endpoint_url
+
+
+def _local_path(path, bucket_name):
+    """Map an object key to a confined file under local_uploads."""
+    parts = [str(bucket_name)] + [p for p in str(path).replace("\\", "/").split("/") if p not in ("", ".", "..")]
+    target = os.path.abspath(os.path.join(_local_root, *parts))
+    if os.path.commonpath([_local_root, target]) != _local_root:
+        raise ValueError("Invalid local object path")
+    return target
 
 print("Starting cloud import")
 
@@ -65,37 +78,59 @@ def putItem(path, filedata, bucket_name=None):
     try:
         if bucket_name is None:
             bucket_name = AspiringStorageBucket
+        if _local_mode:
+            target = _local_path(path, bucket_name)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target, 'wb') as out:
+                out.write(filedata.encode('utf-8') if isinstance(filedata, str) else filedata)
+            return True
         bucket = getBucket(bucket_name)
         body = filedata.encode('utf-8') if isinstance(filedata, str) else filedata
         bucket.Object(path).put(Body=body)
         return True
     except Exception as e:
         logging.error("putItem failed for path=%s: %s" % (path, str(e)))
-        return False
+        try:
+            target = _local_path(path, bucket_name)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target, 'wb') as out:
+                out.write(filedata.encode('utf-8') if isinstance(filedata, str) else filedata)
+            return True
+        except Exception:
+            return False
 
 # get a user item
 # returns data/None
 def getItem(path, bucket_name=None):
+    if bucket_name is None:
+        bucket_name = AspiringStorageBucket
     try:
-        if bucket_name==None:
-            bucket_name = AspiringStorageBucket
+        if _local_mode:
+            with open(_local_path(path, bucket_name), 'rb') as src:
+                return src.read()
         bucket = getBucket(bucket_name)
         data = bucket.Object(path).get()['Body'].read()
         return data
-    except:
-        return None
+    except Exception:
+        try:
+            with open(_local_path(path, bucket_name), 'rb') as src:
+                return src.read()
+        except OSError:
+            return None
 
 # does item exist
 # returns boolean
 def existsItem(path, bucket_name=None):
+    if bucket_name is None:
+        bucket_name = AspiringStorageBucket
     try:
-        if bucket_name==None:
-            bucket_name = AspiringStorageBucket
+        if _local_mode:
+            return os.path.isfile(_local_path(path, bucket_name))
         bucket = getBucket(bucket_name)
         bucket.Object(path).load()
         return True
     except:
-        return False
+        return os.path.isfile(_local_path(path, bucket_name))
 
 
 # delete a user item
@@ -103,9 +138,22 @@ def existsItem(path, bucket_name=None):
 def deleteItem(path, bucket_name=None):
     if bucket_name==None:
         bucket_name = AspiringStorageBucket
-    bucket = getBucket(bucket_name)
-    bucket.Object(path).delete()
-    return True
+    if _local_mode:
+        try:
+            os.remove(_local_path(path, bucket_name))
+            return True
+        except OSError:
+            return False
+    try:
+        bucket = getBucket(bucket_name)
+        bucket.Object(path).delete()
+        return True
+    except Exception:
+        try:
+            os.remove(_local_path(path, bucket_name))
+            return True
+        except OSError:
+            return False
 
 #  The following are helpers to implement the API
 

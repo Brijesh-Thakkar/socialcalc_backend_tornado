@@ -83,6 +83,11 @@ def create_user(email, password):
         if not storage.createDir(userdirpath):
             logging.error("create_user: failed to create %s dir" % str(userdirpath))
             return
+    # Per-user data lives beside the user record under /home/<email>/securestore.
+    # Ensure that root exists before WebAppHandler creates the securestore tree.
+    if not storage.getFile(["home", email]) and not storage.createDir(["home", email]):
+        logging.error("create_user: failed to create home directory for %s", email)
+        return
     path = get_user_path(email)
     user = User(user=email, password=password)
     ok = storage.createFile(path, user.get_data())
