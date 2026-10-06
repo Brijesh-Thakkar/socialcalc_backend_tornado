@@ -218,6 +218,10 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-}
       - S3_BUCKET_NAME=${AWS_S3_BUCKET}
+      # service-to-service token for /v1/* (/v1 answers 503 without it)
+      - NODE_INTEROP_SHARED_SECRET=${NODE_INTEROP_SHARED_SECRET:?set NODE_INTEROP_SHARED_SECRET in .env (see .env.example)}
+      # Node keeps its own user records here, apart from Tornado's ["home","users",<email>] (different hash format)
+      - NODE_USERS_PREFIX=node-users
     networks:
       - app_network
     depends_on:
