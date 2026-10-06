@@ -77,7 +77,7 @@ def create_user(email, password):
     if user_exists(email):
         return
     path = get_user_path(email)
-    print "create_user, path: ",path
+    print("create_user, path: ",path)
     # assumes userdir exists
     user = User(user=email,password=password)
     storage.createFile(path,user.get_data())    

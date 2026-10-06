@@ -1,0 +1,57 @@
+
+ 
+
+<!DOCTYPE html>
+<html lang="en">
+
+{% module Template("header-head.html") %}	
+
+<body>
+
+{% module Template("header-nav.html") %}	
+
+    <!-- Page Content -->
+    <div class="container">
+
+         <br><br>
+            <form role="form" method="POST" action="/web/pwreset">
+              <div id="span12">
+
+                <div class="mb-3">
+                   
+                  <input type="hidden" name="email" value="{{argument['reguser']}}" /><br />
+                </div>
+
+                <div class="mb-3">
+                  <label for="pwd">Password:</label>
+                  <input type="password" class="form-control" id="password" name="password" placeholder="Enter password">
+                </div>
+
+                <div class="mb-3">
+                  <label for="pwd">Retype Password:</label>
+                  <input type="password" class="form-control" id="repassword" name="repassword" placeholder="Enter password">
+                </div>
+
+                <!-- <div class="checkbox">
+                  <label><input type="checkbox"> Remember me</label>
+                </div> -->
+
+                <button type="submit" class="btn btn-default">Reset Password</button>
+                <!-- <a href="/web/home/register.html" class="btn btn-default btn-link" role="button">Register</a>
+                <a href="/lostpw" class="btn btn-default btn-link" role="button">Forgot Password</a> -->
+              </div>
+              </form>
+					 
+        <!-- Footer -->
+	{% module Template("footer.html") %}
+	
+    </div>
+    <!-- /.container -->
+
+    {% module Template("footer-scripts.html") %}	
+
+</body>
+
+
+</html>
+

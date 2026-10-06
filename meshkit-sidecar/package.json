@@ -1,0 +1,17 @@
+{
+  "name": "meshkit-sidecar",
+  "version": "1.0.0",
+  "description": "Thin HTTP sidecar exposing @ipfs-meshkit/meshkit to the Tornado backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ipfs-meshkit/meshkit": "^1.2.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

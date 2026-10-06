@@ -7,7 +7,7 @@
 
 import sys
 import os
-import commands
+import subprocess
 import logging
 import os.path
 import re
@@ -21,7 +21,7 @@ from tornado.options import define, options
 import tornado.escape
 import cloud.storage.storage
 import cloud.authenticate.user
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import json
 import random
 import string
@@ -35,7 +35,7 @@ class Application(tornado.web.Application):
             (r"/swebapp", SubscriptionHandler)
         ]
         settings = dict(
-            app_title=u"Aspiring Investments",
+            app_title="Aspiring Investments",
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             util_path=os.path.join(os.path.dirname(__file__), "util"),
@@ -93,30 +93,30 @@ class SubscriptionHandler(BaseHandler):
         if action == "register":
             email = self.get_argument('email')
             password = self.get_argument('password')
-            print "email is ",email
-            print "password is ",password
+            print("email is ",email)
+            print("password is ",password)
             if cloud.authenticate.user.user_exists(email):
                 # user already exists
-                print "user exists.returning.."
+                print("user exists.returning..")
                 # self.finish(dict(result="exist"))
                 if cloud.authenticate.user.authenticate_user(email,password):
-                    print "authenticate succeeded"
+                    print("authenticate succeeded")
                     self.set_current_user(email)
                     self.finish(dict(result="ok"))
                 else:
-                    print "authenticate failed"
+                    print("authenticate failed")
                     self.finish(dict(result="fail"))
             else:
-                print "creating new user..."
+                print("creating new user...")
                 userdir = "users"
                 userdirpath = ["home",userdir]
                 if cloud.storage.storage.getFile(userdir) == None:
-                    print "userdir is not created"
+                    print("userdir is not created")
                     cloud.storage.storage.createDir(userdirpath)
                 else:
-                    print "userdir exists"
+                    print("userdir exists")
                 cloud.authenticate.user.create_user(email,password)
-                print "user created"
+                print("user created")
                 self.set_current_user(email)
                 self.finish(dict(result="ok"))
             return
@@ -133,12 +133,12 @@ class SubscriptionHandler(BaseHandler):
             content = json.loads(content)
             appname = self.get_argument('appname')
             dirpath = ["home",user,appname]
-            print "dirpath is ", dirpath
+            print("dirpath is ", dirpath)
             path = ["home",user, appname, "subscribe"]
-            print "path is ", path
+            print("path is ", path)
             dirobj = cloud.storage.storage.getFile(dirpath)
             if (not dirobj) or (len(dirobj.files) == 0):
-                print "no directory found, creating.."
+                print("no directory found, creating..")
                 cloud.storage.storage.createDir(dirpath)
             # dir is now created
             fileobj = cloud.storage.storage.getFile(path)
@@ -163,7 +163,7 @@ class SubscriptionHandler(BaseHandler):
             path = ["home",user,appname, "details"]
             dirobj = cloud.storage.storage.getFile(dirpath)
             if (not dirobj) or (len(dirobj.files) == 0):
-                print "no directory found, creating.."
+                print("no directory found, creating..")
                 cloud.storage.storage.createDir(dirpath)
             # dir is now created
             fileobj = cloud.storage.storage.getFile(path)

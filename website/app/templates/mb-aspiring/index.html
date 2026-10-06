@@ -2,6 +2,7 @@
 <html lang="en">
 
  {% module Template("header-head.html") %}
+ <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
 
 <body>
 
@@ -18,6 +19,8 @@
 
         {% module Template("index-callaction.html") %}
 
+        {% module Template("index-donate.html") %}
+
         <hr>
         {% module Template("footer.html") %}
 
@@ -28,9 +31,7 @@
 
     <!-- Script to Activate the Carousel -->
     <script>
-    $('.carousel').carousel({
-        interval: 5000 //changes the speed
-    })
+    new bootstrap.Carousel(document.getElementById('myCarousel'), { interval: 5000 })
     </script>
 
 </body>

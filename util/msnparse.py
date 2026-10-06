@@ -3,10 +3,10 @@
 #
 #
 
-import urlutil
-import BeautifulSoup
-from BeautifulSoup import Tag,NavigableString
-import xbrlmap
+from . import urlutil
+from . import BeautifulSoup
+from .BeautifulSoup import Tag,NavigableString
+from . import xbrlmap
 import json
 
 #Qtr,Ann
@@ -78,8 +78,8 @@ def getTable(table):
 def printTable(rows):
     for i in rows:
         for j in i:
-            print j+",",
-        print ""
+            print(j+",", end=' ')
+        print("")
 
 def getHtmlizeRow(row):
     r = "<tr>"
@@ -131,7 +131,7 @@ def getNormalizedTable(rows,type):
     canonlist = xbrlmap.getNormalizedList(type)
     retrows = []
     for item in canonlist:
-        if map.has_key(item):
+        if item in map:
             retrows.append(map[item])
         else:
             #append an empty row
@@ -195,7 +195,7 @@ def getAllTables(sym, cache=False):
     soup1 = createXmlDoc(sym)
     
     url = msnbase % (sym,"Income", "Ann")
-    print "fetch:",url
+    print("fetch:",url)
     data = urlutil.getUrl(url,cache)
     open("tmp-inc.htm","w").write(data)
     soup = BeautifulSoup.BeautifulSoup(data)
@@ -203,7 +203,7 @@ def getAllTables(sym, cache=False):
     addTableToXml(soup1, rows, "i")
 
     url = msnbase % (sym,"Balance", "Ann")
-    print "fetch:",url
+    print("fetch:",url)
     data = urlutil.getUrl(url,cache)
     open("tmp-bal.htm","w").write(data)    
     soup = BeautifulSoup.BeautifulSoup(data)
@@ -211,7 +211,7 @@ def getAllTables(sym, cache=False):
     addTableToXml(soup1, rows, "b")
 
     url = msnbase % (sym,"CashFlow", "Ann")
-    print "fetch:",url
+    print("fetch:",url)
     data = urlutil.getUrl(url,cache) 
     open("tmp-cf.htm","w").write(data)       
     soup = BeautifulSoup.BeautifulSoup(data)
@@ -254,14 +254,14 @@ def demo1():
     str1 = demo_get_data("msft","Balance", "Ann")
     str2 = demo_get_data("msft","Income", "Ann")
     str3 = demo_get_data("msft","CashFlow", "Ann")
-    print str1+"\n\n"+str2+"\n\n"+str3
+    print(str1+"\n\n"+str2+"\n\n"+str3)
 
 def demo2(sym):
     startrow = 1
     str1,startrow = demo_get_sheet_data(sym,"Balance", "Ann", startrow)
     str2,startrow = demo_get_sheet_data(sym,"Income", "Ann", startrow+2)
     str3,startrow = demo_get_sheet_data(sym,"CashFlow", "Ann", startrow+2)
-    print str1+str2+str3
+    print(str1+str2+str3)
 
 
 
@@ -275,7 +275,7 @@ def workbook(sym):
     str1,startrow = demo_get_sheet_data(sym,"Balance", "Ann", 2)
     str2,startrow = demo_get_sheet_data(sym,"Income", "Ann", 2)
     str3,startrow = demo_get_sheet_data(sym,"CashFlow", "Ann", 2)
-    print savetemplate1+"\\n"+str1+'"'+savetemplate2+"\\n"+str2+'"'+savetemplate3+"\\n"+str3+'"'+savetemplate4
+    print(savetemplate1+"\\n"+str1+'"'+savetemplate2+"\\n"+str2+'"'+savetemplate3+"\\n"+str3+'"'+savetemplate4)
 
 
 def getJsonStmt(tick,typ,period):
@@ -302,7 +302,7 @@ def demo():
     url = msnbase % ("msft","Income", "Qtr")
     #url = msnbase % ("msft","Balance", "Qtr")
     #url = msnbase % ("msft","CashFlow", "Qtr")        
-    print "fetch:",url
+    print("fetch:",url)
     data = urlutil.getUrl(url)
     #open('msn-cf.htm','w').write(data)
     #data = open('msn-bal.htm').read()
@@ -312,7 +312,7 @@ def demo():
     rows = getFinStmt(soup)
     #table = getFinTable(soup)
     #print table.prettify()
-    print getCSVTable(rows)
+    print(getCSVTable(rows))
     #soup1 = createXmlDoc("msft")
     #addTableToXml(soup1, rows, "c")
     #print soup1.prettify()
@@ -338,7 +338,7 @@ if __name__ == "__main__":
             data["tick3"] = demojson(tick3)
         else:
             data["tick3"] = {}
-        print json.dumps(data)
+        print(json.dumps(data))
     else:
         #demo1()
         #demo2(sym)

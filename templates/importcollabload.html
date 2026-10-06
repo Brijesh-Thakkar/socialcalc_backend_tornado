@@ -186,7 +186,7 @@ body, td, input, texarea {font-family:verdana,helvetica,sans-serif;font-size:sma
 
 <script>
 
-var sheetnamemscedata = "{{ entry["sheetmscestr"] }}";
+var sheetnamemscedata = "{% raw entry["sheetmscestr"] %}";
 Aspiring.AutoSave.selectedFile = "{{ entry["fname"] }}";
 
  
@@ -579,6 +579,7 @@ function uploadcheck(){
   return true;
 }
 
+
 function downloadcheck(){
 
  var ele =  document.getElementById('downloadtype');
@@ -590,10 +591,6 @@ function downloadcheck(){
  // alert("selected type: "+ele.options[ele.selectedIndex].value);
   if (ele.options[ele.selectedIndex].value == "MSCE") {
       document.getElementById('downloadcontent').value = encodeURIComponent(SocialCalc.WorkBookControlSaveSheet())
-  } if ((ele.options[ele.selectedIndex].value == "HTML") || (ele.options[ele.selectedIndex].value == "PDF")) {
-      var control = SocialCalc.GetCurrentWorkBookControl();
-      var html = control.workbook.spreadsheet.CreateSheetHTML();      
-      document.getElementById('downloadcontent').value = html
   } else {
       document.getElementById('downloadcontent').value = SocialCalc.WorkBookControlSaveSheet()
   }

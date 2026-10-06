@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% module Template("header-head.html") %}	
+
+<body>
+
+{% module Template("header-nav.html") %}	
+
+    <!-- Page Content -->
+    <div class="container">
+
+         
+         <br><br><br>
+
+            <a href="/web/lostpw" class="btn btn-default" role="button"><span class="carousel-control-prev-icon"></span>Back</a>
+            <br><br>
+            <center>
+
+			 Invalid attempt to reset password for : {{ argument['reguser'] }}
+
+			</center>
+
+					 
+        <!-- Footer -->
+	{% module Template("footer.html") %}
+	
+    </div>
+    <!-- /.container -->
+
+    {% module Template("footer-scripts.html") %}	
+
+</body>
+
+
+</html>
+
+

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Aspiring Investments
 #
@@ -7,7 +7,7 @@
 #
 
 import os
-import commands
+import subprocess
 import logging
 import os.path
 import re
@@ -31,13 +31,14 @@ from tornado.options import define, options
 from util.amazon_ses import AmazonSES,EmailMessage
 
 from collections import namedtuple
-import urllib
-import dropbox
+import urllib.request, urllib.parse, urllib.error
 import memcache
 
 import time
 import base64
 import sync
+
+import asyncio
 
 #import util.ystockquote
 #import util.simpledb
@@ -51,12 +52,26 @@ define("port", default=8080, help="run on the given port", type=int)
 #define("mysql_user", default="ai", help="database user")
 #define("mysql_password", default="ai", help="database password")
   
+HTMLTOPDF_BASE = os.environ.get(
+    "HTMLTOPDF_BASE",
+    "/home/ubuntu/tmp"
+)
+PDF_BUCKET = os.getenv(
+    "PDF_S3_BUCKET",
+    "aspiring-pdf-files"
+)
+IMG_BUCKET = os.getenv("IMG_S3_BUCKET", "aspiring-img-files")
+# Public base URL used to build pdfurl in responses.
+# Trailing slashes are stripped so the path join is always clean.
+# Falls back to reconstructing the URL from the incoming request when unset.
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
 
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
             (r"/dev", HomeHandler),
             (r"/save", SaveHandler),
+            (r"/search", SearchHandler),
             (r"/runas", RunAsHandler),
             (r"/runasemailer",RunAsEmailHandler),            
             (r"/usersheet", UserSheetHandler),
@@ -70,6 +85,13 @@ class Application(tornado.web.Application):
             (r"/register",UserRegisterHandler),
             (r"/lostpw",UserLostPasswordHandler),
             (r"/webapp",WebAppHandler),
+            (r"/meshkit", MeshkitHandler),
+            (r"/meshkit/upload", MeshkitSidecarHandler),
+            (r"/meshkit/retrieve/(.*)", MeshkitSidecarHandler),
+            (r"/meshkit/list", MeshkitSidecarHandler),
+            (r"/meshkit-kubo/upload", MeshkitKuboSidecarHandler),
+            (r"/meshkit-kubo/retrieve/(.*)", MeshkitKuboSidecarHandler),
+            (r"/meshkit-kubo/list", MeshkitKuboSidecarHandler),
             (r"/pwreset",PwResetHandler),
             (r"/dropbox", DropBoxHandler),
             (r"/inapp", InAppHandler),
@@ -77,26 +99,26 @@ class Application(tornado.web.Application):
             (r"/amazonwebapp/(?P<param1>[^\/]+)/randomCode/(?P<param2>[^\/]+)", AmazonWebAppHandler),
             (r"/finrecord", FinanceRecordKeeper),
             (r"/bisrecord", BusinessRecordKeeper),
-            (r"/sync", sync.SyncHandler)
+            (r"/sync", sync.SyncHandler),
 
 
             #(r"/multisheet", MultiSheetHandler),
             #(r"/templates",TemplatesHandler),
             #(r"/stock", StockHandler),
-            #(r"/broadcast", MessageNewHandler),
-            #(r"/updates", MessageUpdateHandler),
+            (r"/broadcast", MessageNewHandler),
+            (r"/updates", MessageUpdateHandler),
             #(r"/sharedsession", SharedSessionHandler),
             #(r"/uploadtest", UploadTestHandler),
 
             #(r"/ticker", TickerHandler),
             #(r"/tenyeardata", TenYearDataHandler),
             #(r"/embed(.*)", EmbedHandler),            
-            #(r"/collaborate(.*)", CollaborateHandler),            
+            (r"/collaborate(.*)", CollaborateHandler),            
             #(r"/share", ShareHandler),
             #(r"/tickerjson", TickerJsonHandler)              
         ]
         settings = dict(
-            app_title=u"Aspiring Investments",
+            app_title="Aspiring Investments",
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             util_path=os.path.join(os.path.dirname(__file__), "util"),
@@ -132,7 +154,8 @@ class Application(tornado.web.Application):
         #self.db = tornado.database.Connection(
         #    host=options.mysql_host, database=options.mysql_database,
         #    user=options.mysql_user, password=options.mysql_password)
-        self.mc = memcache.Client(['127.0.0.1'], debug=0)
+        memcache_host = os.environ.get('MEMCACHE_HOST', '127.0.0.1')
+        self.mc = memcache.Client([memcache_host], debug=0)
 
 class BaseHandler(tornado.web.RequestHandler):
     @property
@@ -176,11 +199,11 @@ class UserLoginHandler(BaseHandler):
         password = self.get_argument('password')
         logging.info(user)
         if cloud.authenticate.user.authenticate_user(user,password):
-            print "authenticate succeeded"
+            print("authenticate succeeded")
             self.set_current_user(user)
             self.redirect("/save")
         else:
-            print "authenticate failed"
+            print("authenticate failed")
             self.redirect("/login")
 
 class UserLogoutHandler(BaseHandler):
@@ -324,7 +347,7 @@ class RunAsHandler(BaseHandler):
         if not sheets:
             return
         else:
-            sheets = urllib.unquote(sheets)
+            sheets = urllib.parse.unquote(sheets)
             logging.info(sheets)
             lis = sheets.split(",")
             
@@ -405,6 +428,21 @@ class SaveHandler(BaseHandler):
                 cloud.storage.storage.updateFile(path,sheetstr)                
         self.finish(dict(data="Done"))        
 
+class SearchHandler(BaseHandler):
+    def get(self):
+        user = self.get_current_user()
+        if user == None:
+            #this cannot happen
+            self.redirect("/dev")
+            return            
+        query = self.get_argument("q", "").strip()
+        path = ["home", user]
+        entries = cloud.storage.storage.searchFiles(path, query)
+        argument = {}
+        argument["user"] = user
+        argument["entries"] = entries
+        self.render("allusersheets.html", argument=argument)
+
 class WebAppHandler(BaseHandler):
     # add error cases also
     def get_user_id(self):
@@ -432,7 +470,7 @@ class WebAppHandler(BaseHandler):
             path = ["home",user,"securestore","inapp", app]
             dirobj = cloud.storage.storage.getFile(dirpath)
             if (not dirobj) or (len(dirobj.files) == 0):
-                print "no directory found, no inapp initialised"
+                print("no directory found, no inapp initialised")
                 self.finish(dict(result="no"))
                 return
             fileobj = cloud.storage.storage.getFile(path)
@@ -452,7 +490,7 @@ class WebAppHandler(BaseHandler):
         path = ["home",user,"securestore","inapp", app]
         dirobj = cloud.storage.storage.getFile(dirpath)
         if (not dirobj) or (len(dirobj.files) == 0):
-            print "no directory found, creating.."
+            print("no directory found, creating..")
             cloud.storage.storage.createDir(dirpath)
         # dir is now created
         fileobj = cloud.storage.storage.getFile(path)
@@ -600,19 +638,13 @@ class WebAppHandler(BaseHandler):
             user = self.get_user_id()
             password = self.get_argument('password')
             app = self.get_argument('appname')
-            logging.info("user is "+user)
-            logging.info("appname is "+app)
-            if cloud.authenticate.user.authenticate_user(user,password):
-                print "authenticate succeeded"
+            if cloud.authenticate.user.authenticate_user(user, password):
                 self.set_current_user(user)
-                #self.finish(dict(result="ok"))
-                username = self.get_current_user()
                 device = self.get_argument('deviceId')
                 path1 = ["home",user,"securestore","device"]
                 dirpath = ["home",user,"securestore"]
                 dirobj1 = cloud.storage.storage.getFile(dirpath)
                 if (not dirobj1) or (len(dirobj1.files) == 0):
-                   logging.info("no directory ")
                    cloud.storage.storage.createDir(dirpath)
                 fileobj1 = cloud.storage.storage.getFile(path1)
                 if fileobj1 == None:
@@ -620,32 +652,26 @@ class WebAppHandler(BaseHandler):
                 else:
                     filedata = fileobj1.data
                     filesdata = filedata.split(',')
-                    logging.info(filesdata)
                     ctr = 0
                     for i in range(0,len(filesdata)):
                         fnme = filesdata[i]
                         if device == fnme:
-                           #self.finish(dict(result="ok"))
                            ctr+=1
                     if ctr==0:
                         device += ","+fileobj1.data
                         cloud.storage.storage.updateFile(path1,device)
                 path = ["home",user,"securestore","ios"]
-                #dirpath = ["home",user,"securestore"]
                 dirobj = cloud.storage.storage.getFile(dirpath)
                 if (not dirobj) or (len(dirobj.files) == 0):
-                   logging.info("no directory ")
                    cloud.storage.storage.createDir(dirpath)
-                #dir created here
                 if app != None:
                    fileobj = cloud.storage.storage.getFile(path)
                    if fileobj == None:
                       cloud.storage.storage.createFile(path,app)
-                      self.finish(dict(result="ok"))   
+                      self.finish(dict(result="ok"))
                    else:
                       filedata = fileobj.data
                       filesdata = filedata.split(',')
-                      logging.info(filesdata)
                       for i in range(0,len(filesdata)):
                         fnme = filesdata[i]
                         if app == fnme:
@@ -655,39 +681,29 @@ class WebAppHandler(BaseHandler):
                       cloud.storage.storage.updateFile(path,app)
                       self.finish(dict(result="ok"))
             else:
-                print "authenticate failed"
-                self.finish(dict(result="fail"))
+                self.finish(dict(result="fail", data="authfail"))
         if action == "logout":
             self.clear_cookie("user")
             self.finish(dict(result="ok"))
         if action == "register":
             user = self.get_user_id()
             password = self.get_argument('password')
-            logging.info("username is "+user)
             if cloud.authenticate.user.user_exists(user):
-                # user already exists
-                argument = {}
-                argument['user'] = None
-                argument['reguser'] = user
                 self.finish(dict(result="exist"))
                 return
-            cloud.authenticate.user.create_user(user,password)
+            cloud.authenticate.user.create_user(user, password)
+            # Verify the S3 write landed before proceeding
+            if not cloud.authenticate.user.user_exists(user):
+                logging.error("register: user not found in S3 after create_user for %s", user)
+                self.finish(dict(result="fail", data="registration_storage_error"))
+                return
             self.set_current_user(user)
-            argument = {}
-            argument['user'] = user
-            #path = ["home",user,"securestore"]            
-            #dirobj = cloud.storage.storage.getFile(path)
-            #if (not dirobj) or (len(dirobj.files) == 0):
-                #logging.info("no directory")
-                #cloud.storage.storage.createDir(path)
             app = self.get_argument("appname")
             path = ["home",user,"securestore","ios"]
             dirpath = ["home",user,"securestore"]
             dirobj = cloud.storage.storage.getFile(dirpath)
             if (not dirobj) or (len(dirobj.files) == 0):
-               logging.info("no directory ")
                cloud.storage.storage.createDir(dirpath)
-            #dir created here
             if app != None:
                fileobj = cloud.storage.storage.getFile(path)
                if fileobj == None:
@@ -696,7 +712,6 @@ class WebAppHandler(BaseHandler):
                else:
                   filedata = fileobj.data
                   filesdata = filedata.split(',')
-                  logging.info(filesdata)
                   for i in range(0,len(filesdata)):
                     fnme = filesdata[i]
                     if app == fnme:
@@ -763,7 +778,7 @@ class WebAppHandler(BaseHandler):
             path = ["home",user,"securestore","inapp",appname]
             dirobj = cloud.storage.storage.getFile(dirpath)
             if (not dirobj) or (len(dirobj.files) == 0):
-                print "no directory found, creating.."
+                print("no directory found, creating..")
                 cloud.storage.storage.createDir(dirpath)
             # dir is now created
             fileobj = cloud.storage.storage.getFile(path)
@@ -778,9 +793,9 @@ class WebAppHandler(BaseHandler):
             else:
                 filedata = fileobj.data
                 consumed = filedata['consumed']
-                print "consumed was ",consumed
+                print("consumed was ",consumed)
                 consumed += 1
-                print "consumed now ", consumed
+                print("consumed now ", consumed)
                 message = {}
                 message['consumed'] = consumed
                 message['own'] = filedata['own']
@@ -791,7 +806,7 @@ class WebAppHandler(BaseHandler):
                     message['consumed'] = 0
                     message['own'] = 0
                     cloud.storage.storage.updateFile(path,message)
-                    print "save exhausted " , message
+                    print("save exhausted " , message)
                     self.finish(dict(result="ok"))
                     return
                 self.finish(dict(result="ok"))
@@ -902,7 +917,7 @@ version:1.5
         fname = self.get_argument('pagename')
         cmdname = os.path.join(self.application.settings["util_path"],"msnparse.py")
         #logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s"%(cmdname,ticker))
+        sheetstr = subprocess.getoutput("python %s %s"%(cmdname,ticker))
         template = self.db.query("SELECT * FROM StockTemplates WHERE user = %s AND fname = %s",user,fname)
         #logging.info(sheetstr)
         #logging.info("---")
@@ -957,25 +972,29 @@ class MessageMixin:
         self.fname = fname
         self.nextid = 2;
 
-    def wait_for_messages(self, callback, cursor=None):
+    async def wait_for_messages(self, cursor=None):
         if cursor:
             index = 0
-            for i in xrange(len(self.cache)):
+            for i in range(len(self.cache)):
                 index = len(self.cache) - i - 1
-                if self.cache[index]["id"] == cursor: break
+                if self.cache[index]["id"] == cursor:
+                    break
             recent = self.cache[index + 1:]
             if recent:
-                callback(recent)
-                return        
-        self.waiters.append(callback)
+                return recent
+        future = asyncio.get_running_loop().create_future()
+        self.waiters.append(future)
+
+        return await future
 
     def new_messages(self, message):
         logging.info("Sending new message to %r listeners", len(self.waiters))
-        for callback in self.waiters:
+        for future in self.waiters:
             try:
-                callback(message)
-            except:
-                logging.error("Error in waiter callback", exc_info=True)
+                if not future.done():
+                    future.set_result(message)
+            except Exception:
+                logging.exception("Error in waiter future")
         self.waiters = []
         self.cache.extend(message)
         if len(self.cache) > self.cache_size:
@@ -1015,8 +1034,7 @@ class MessageNewHandler(BaseHandler):
 # This is the long poller
 #
 class MessageUpdateHandler(BaseHandler):
-    @tornado.web.asynchronous
-    def post(self):
+    async def post(self):
         #create a new channel if id=1 and no channel exists
         cursor = self.get_argument("cursor", None)
         session = self.get_cookie("session")        
@@ -1024,16 +1042,16 @@ class MessageUpdateHandler(BaseHandler):
         #logging.info("long poll id=%s,session=%s"%(id,session))
         channel = channels.get(session,None)
         if channel:
-            channel.wait_for_messages(self.async_callback(self.on_new_messages),
-                                      cursor=cursor)
+            messages = await channel.wait_for_messages(cursor=cursor)
+            self.finish(dict(messages=messages))
 
-    def on_new_messages(self, messages):
-        # Closed client connection
-        if self.request.connection.stream.closed():
-            return
-        #logging.info(messages)
-        #self.write(messages)
-        self.finish(dict(messages=messages))
+    # def on_new_messages(self, messages):
+    #     # Closed client connection
+    #     if self.request.connection.stream.closed():
+    #         return
+    #     #logging.info(messages)
+    #     #self.write(messages)
+    #     self.finish(dict(messages=messages))
 
 
 class MultiSheetHandler(BaseHandler):
@@ -1049,7 +1067,7 @@ class MultiSheetHandler(BaseHandler):
         fname = self.get_argument('pagename')
         cmdname = os.path.join(self.application.settings["util_path"],"msnparse.py")
         logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s"%(cmdname,ticker))
+        sheetstr = subprocess.getoutput("python %s %s"%(cmdname,ticker))
         #template = self.db.query("SELECT * FROM StockTemplates WHERE user = %s AND fname = %s",user,fname)
         #logging.info(sheetstr)
         #logging.info("---")
@@ -1091,7 +1109,7 @@ class UploadTestHandler(BaseHandler):
         f.close()
         #logging.info("wrote "+fullfname)
         cmdname = "./excelinterop/phpexcel/socialcalc/import.php"
-        output = commands.getoutput("php %s %s"%(cmdname, fullfname))
+        output = subprocess.getoutput("php %s %s"%(cmdname, fullfname))
         #logging.info("output is "+output)
         i = output.index("$---$")
         wbook = output[i+5:]
@@ -1140,7 +1158,7 @@ class UploadHandler(BaseHandler):
         f.close()
         #logging.info("wrote "+fullfname)
         cmdname = "./excelinterop/phpexcel/socialcalc/import.php"
-        output = commands.getoutput("php %s %s"%(cmdname, fullfname))
+        output = subprocess.getoutput("php %s %s"%(cmdname, fullfname))
         #logging.info("output is "+output)
         i = output.index("$---$")
         wbook = output[i+5:]
@@ -1177,51 +1195,263 @@ suffix = {"Excel2007":"xlsx",
 
 sessionfiledownloads = {}
 import codecs
+import tempfile
+from excelinterop.socialcalc_interop import export_xlsx, export_xls, export_csv
+
 class DownloadFileHandler(BaseHandler):
     def post(self):
         logging.info(self.get_argument("type"))
-        #logging.info(self.get_argument("content"))
         type = self.get_argument('type')
-        #logging.info(self.get_argument('content'))
-        if (type != "MSC") and (type != "MSCE") and (type != "HTML") and (type != "PDF") :
-            fullfname = "./excelinterop/phpexcel/socialcalc/tmp/tmp"
-            inpfile = fullfname+".b"
-        
-            f = codecs.open(inpfile,encoding='utf-8',mode="w+")
-            s = unicode(self.get_argument('content'))
-            #logging.info(s)
-            f.write(s)
-            f.close()
-            outfile = fullfname+"."+suffix[type]
-            logging.info(outfile)
-            logging.info(inpfile)
-            cmdname = "./excelinterop/phpexcel/socialcalc/export.php"
-            output = commands.getoutput("php %s %s %s %s"%(cmdname, inpfile, outfile, type))
-            logging.info(output)
-            content = open(outfile).read()
-        elif (type == "PDF"):
-            # run with wkhtmltopdf
+        raw_content = self.get_argument('content')
+        if type == "Excel2007":
+            content = export_xlsx(raw_content)
+        elif type == "Excel5":
+            content = export_xls(raw_content)
+        elif type == "CSV":
+            content = export_csv(raw_content).encode('utf-8')
+        elif type == "PDF":
+            from excelinterop.socialcalc_interop import export_html
             logging.info("type is PDF")
-            fullfname = "/home/ubuntu/tmp/tmp"
-            inpfile = fullfname+".html"
-            f = codecs.open(inpfile,encoding='utf-8',mode="w+")
-            s = unicode(self.get_argument('content'))
-            #logging.info(s)
-            f.write(s)
-            f.close()
-            outfile = fullfname+"."+suffix[type]
-            logging.info(outfile)
-            logging.info(inpfile)
+            html_content = export_html(raw_content)
+            tmpdir = tempfile.mkdtemp()
+            inpfile = os.path.join(tmpdir, "tmp.html")
+            outfile = os.path.join(tmpdir, "tmp.pdf")
+            with open(inpfile, 'w', encoding='utf-8') as f:
+                f.write(html_content)
             cmdname = "/usr/local/bin/wkhtmltopdf.sh"
-            output = commands.getoutput("%s %s %s"%(cmdname, inpfile, outfile))
+            if not os.path.exists(cmdname):
+                cmdname = "wkhtmltopdf"
+            output = subprocess.getoutput(
+                "%s --enable-javascript --javascript-delay 2000 --no-stop-slow-scripts %s %s"
+                % (cmdname, inpfile, outfile)
+            )
             logging.info(output)
-            content = open(outfile).read()
+            if os.path.exists(outfile):
+                with open(outfile, 'rb') as f:
+                    content = f.read()
+            else:
+                self.set_status(500)
+                self.write("PDF generation failed: wkhtmltopdf not available or errored")
+                return
+        elif type == "HTML":
+            from excelinterop.socialcalc_interop import export_html
+            content = export_html(raw_content)
+        elif type in ("MSC", "MSCE"):
+            content = raw_content
         else:
-            content = self.get_argument('content')
+            self.set_status(400)
+            self.write("Unknown export type")
+            return
         self.set_header("Content-Type", contenttypes[type])
         self.set_header("Content-Disposition", 'attachment;filename='+"tmp."+suffix[type])
-        self.set_header("Cache-Control", 'max-age=0') 
+        self.set_header("Cache-Control", 'max-age=0')
         self.write(content)
+
+
+MESHKIT_BASE = "http://meshkit-service:4000"
+MESHKIT_SIDECAR_URL = os.getenv("MESHKIT_SIDECAR_URL", "http://localhost:5050")
+MESHKIT_KUBO_SIDECAR_URL = os.getenv("MESHKIT_KUBO_SIDECAR_URL", "http://localhost:5051")
+
+class MeshkitHandler(BaseHandler):
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def options(self):
+        self.set_status(204)
+        self.finish()
+
+    @tornado.gen.coroutine
+    def get(self):
+        action = self.get_argument("action", "")
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            if action == "getjson":
+                cid = self.get_argument("cid")
+                resp = yield http.fetch("%s/getJSON/%s" % (MESHKIT_BASE, cid))
+                self.set_header("Content-Type", "application/json")
+                self.write(resp.body)
+            elif action == "getfile":
+                cid = self.get_argument("cid")
+                resp = yield http.fetch("%s/getFile/%s" % (MESHKIT_BASE, cid))
+                self.set_header("Content-Type", resp.headers.get("Content-Type", "application/octet-stream"))
+                self.write(resp.body)
+            elif action == "delete":
+                cid = self.get_argument("cid")
+                req = tornado.httpclient.HTTPRequest(
+                    "%s/delete/%s" % (MESHKIT_BASE, cid), method="DELETE"
+                )
+                resp = yield http.fetch(req)
+                self.set_header("Content-Type", "application/json")
+                self.write(resp.body)
+            else:
+                self.set_status(400)
+                self.write({"error": "unknown action"})
+        except tornado.httpclient.HTTPClientError as e:
+            self.set_status(500)
+            self.write({"error": str(e)})
+
+    @tornado.gen.coroutine
+    def post(self):
+        action = self.get_argument("action", "")
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            if action == "putjson":
+                body = self.request.body
+                req = tornado.httpclient.HTTPRequest(
+                    "%s/putJSON" % MESHKIT_BASE, method="POST",
+                    headers={"Content-Type": "application/json"}, body=body
+                )
+                resp = yield http.fetch(req)
+                self.set_header("Content-Type", "application/json")
+                self.write(resp.body)
+            elif action == "putfile":
+                body = self.request.body
+                content_type = self.request.headers.get("Content-Type", "application/octet-stream")
+                req = tornado.httpclient.HTTPRequest(
+                    "%s/putFile" % MESHKIT_BASE, method="POST",
+                    headers={"Content-Type": content_type}, body=body
+                )
+                resp = yield http.fetch(req)
+                self.set_header("Content-Type", "application/json")
+                self.write(resp.body)
+            else:
+                self.set_status(400)
+                self.write({"error": "unknown action"})
+        except tornado.httpclient.HTTPClientError as e:
+            self.set_status(500)
+            self.write({"error": str(e)})
+
+
+class MeshkitSidecarHandler(BaseHandler):
+    """Proxy handler for the meshkit-sidecar Node service (port 5050).
+    Exposes REST-style routes: /meshkit/upload, /meshkit/retrieve/{cid}, /meshkit/list.
+    """
+
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def options(self, *args):
+        self.set_status(204)
+        self.finish()
+
+    @tornado.gen.coroutine
+    def post(self):
+        # POST /meshkit/upload — forward raw bytes to sidecar
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            req = tornado.httpclient.HTTPRequest(
+                "%s/upload" % MESHKIT_SIDECAR_URL, method="POST",
+                headers={"Content-Type": "application/octet-stream"},
+                body=self.request.body or b""
+            )
+            resp = yield http.fetch(req)
+            self.set_header("Content-Type", "application/json")
+            self.write(resp.body)
+        except tornado.httpclient.HTTPClientError as e:
+            status = 502 if e.code == 599 else 500
+            logging.error("meshkit-sidecar upload error: %s", e)
+            self.set_status(status)
+            self.write({"error": str(e)})
+
+    @tornado.gen.coroutine
+    def get(self, cid=None):
+        # GET /meshkit/retrieve/{cid}  or  GET /meshkit/list
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            if cid is not None:
+                resp = yield http.fetch(
+                    "%s/retrieve/%s" % (MESHKIT_SIDECAR_URL, cid)
+                )
+                self.set_header(
+                    "Content-Type",
+                    resp.headers.get("Content-Type", "application/octet-stream")
+                )
+                self.write(resp.body)
+            else:
+                resp = yield http.fetch("%s/list" % MESHKIT_SIDECAR_URL)
+                self.set_header("Content-Type", "application/json")
+                self.write(resp.body)
+        except tornado.httpclient.HTTPClientError as e:
+            if e.code == 404:
+                self.set_status(404)
+                self.write({"error": "not found"})
+            else:
+                status = 502 if e.code == 599 else 500
+                logging.error("meshkit-sidecar retrieve/list error: %s", e)
+                self.set_status(status)
+                self.write({"error": str(e)})
+
+
+class MeshkitKuboSidecarHandler(BaseHandler):
+    """Proxy handler for the meshkit-sidecar-kubo Node service (port 5051).
+    Kubo/IPFS-daemon backend — parallel to MeshkitSidecarHandler (S3 backend).
+    Routes: /meshkit-kubo/upload, /meshkit-kubo/retrieve/{cid}, /meshkit-kubo/list
+    """
+
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def options(self, *args):
+        self.set_status(204)
+        self.finish()
+
+    @tornado.gen.coroutine
+    def post(self):
+        # POST /meshkit-kubo/upload — forward raw bytes to sidecar
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            req = tornado.httpclient.HTTPRequest(
+                "%s/upload" % MESHKIT_KUBO_SIDECAR_URL, method="POST",
+                headers={"Content-Type": "application/octet-stream"},
+                body=self.request.body or b""
+            )
+            resp = yield http.fetch(req)
+            self.set_header("Content-Type", "application/json")
+            self.write(resp.body)
+        except tornado.httpclient.HTTPClientError as e:
+            # 599 = Tornado network error (sidecar unreachable) → 502
+            # 504 = sidecar reported a timeout (e.g. Kubo retrieve hung) → propagate as 504
+            # anything else → 500
+            status = 502 if e.code == 599 else (504 if e.code == 504 else 500)
+            logging.error("meshkit-kubo upload error: %s", e)
+            self.set_status(status)
+            self.write({"error": str(e)})
+
+    @tornado.gen.coroutine
+    def get(self, cid=None):
+        # GET /meshkit-kubo/retrieve/{cid}  or  GET /meshkit-kubo/list
+        http = tornado.httpclient.AsyncHTTPClient()
+        try:
+            if cid is not None:
+                resp = yield http.fetch(
+                    "%s/retrieve/%s" % (MESHKIT_KUBO_SIDECAR_URL, cid)
+                )
+                self.set_header(
+                    "Content-Type",
+                    resp.headers.get("Content-Type", "application/octet-stream")
+                )
+                self.write(resp.body)
+            else:
+                resp = yield http.fetch("%s/list" % MESHKIT_KUBO_SIDECAR_URL)
+                self.set_header("Content-Type", "application/json")
+                self.write(resp.body)
+        except tornado.httpclient.HTTPClientError as e:
+            if e.code == 404:
+                self.set_status(404)
+                self.write({"error": "not found"})
+            else:
+                # 599 = sidecar unreachable → 502
+                # 504 = sidecar retrieve timed out → propagate as 504
+                status = 502 if e.code == 599 else (504 if e.code == 504 else 500)
+                logging.error("meshkit-kubo retrieve/list error: %s", e)
+                self.set_status(status)
+                self.write({"error": str(e)})
 
 
 class IconImgHandler(BaseHandler):
@@ -1230,9 +1460,16 @@ class IconImgHandler(BaseHandler):
         char_set = string.ascii_uppercase + string.digits
         return ''.join(random.sample(char_set,size))
     def exists_in_storage(self,fname):
-        return cloud.storage.storage.existsItem(fname, "aspiring-img-files")
+        return cloud.storage.storage.existsItem(fname, IMG_BUCKET)
     def get_from_storage(self,fname):
-        return cloud.storage.storage.getItem(fname, "aspiring-img-files")
+        return cloud.storage.storage.getItem(fname, IMG_BUCKET)
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+    def options(self):
+        self.set_status(204)
+        self.finish()
     def get(self):
         logging.info("in iconimg get")
         fname = self.get_argument('fname')
@@ -1252,7 +1489,8 @@ class IconImgHandler(BaseHandler):
             #self.write(open(inpfile).read())
             if os.path.exists(inpfile):
                 logging.info("found %s on disk"%fname)
-                self.write(open(inpfile).read())
+                with open(inpfile, "rb") as f:
+                    self.write(f.read())
             else:
                 data = self.get_from_storage(fname)
                 if data:
@@ -1276,38 +1514,37 @@ class IconImgHandler(BaseHandler):
                 continue
             else:
                 break;
-    
+
+        os.makedirs(os.path.dirname(fullfname), exist_ok=True)
         s = self.get_argument('content')
-        inpfile = fullfname+"."+self.get_argument('suffix')
-        typ ,dat = s.split(',');
-        # logging.info(typ)
+        suffix = self.get_argument('suffix')
+        inpfile = fullfname+"."+suffix
+        typ, dat = s.split(',')
         logging.info(len(dat))
-        # logging.info(len(str))
-        str = base64.b64decode(dat)
-        """s += "==="
-        lens = len(s)
-        logging.info(lens)
-        s = base64.b64decode(s)
-        logging.info(lens % 4)
-        lens = len(s)
-        logging.info(lens)
-        lenx = lens - (lens % 4 if lens % 4 else 4)
-        logging.info(lenx)
-        s = base64.b64decode(s[:lenx])
-        s.decode('base64')
-        s = base64.decodestring(s)"""
-        f = open(inpfile,"w")
-        f.write(str)
-        f.close()
-        fname = fname+"."+self.get_argument('suffix')
-        imgurl="http://"+self.request.host+"/iconimg?fname=%s"%fname
+        img_bytes = base64.b64decode(dat)
+        with open(inpfile, "wb") as f:
+            f.write(img_bytes)
+        fname = fname+"."+suffix
+        if cloud.storage.storage.putItem(fname, img_bytes, IMG_BUCKET):
+            logging.info("uploaded image %s to s3" % fname)
+        else:
+            logging.error("s3 upload failed for image %s; file only available on this instance" % fname)
+        base = PUBLIC_BASE_URL if PUBLIC_BASE_URL else "http://" + self.request.host
+        imgurl = "%s/iconimg?fname=%s" % (base, fname)
         self.finish(dict(imgurl=imgurl,result="ok"))
 
 class HtmlToPdfHandler(BaseHandler):
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+    def options(self):
+        self.set_status(204)
+        self.finish()
     def exists_in_storage(self,fname):
-        return cloud.storage.storage.existsItem(fname, "aspiring-pdf-files")
+        return cloud.storage.storage.existsItem(fname, PDF_BUCKET)
     def get_from_storage(self,fname):
-        return cloud.storage.storage.getItem(fname, "aspiring-pdf-files")
+        return cloud.storage.storage.getItem(fname, PDF_BUCKET)
     def get_random_string(self,size):
         char_set = string.ascii_uppercase + string.digits
         return ''.join(random.sample(char_set,size))
@@ -1316,24 +1553,26 @@ class HtmlToPdfHandler(BaseHandler):
         fname = self.get_argument('fname')
         action = self.get_argument('action', default=None)
         if action and action == "preview":
-            fullfname = "/home/ubuntu/tmp/preview/%s"%fname
+            fullfname = os.path.join(HTMLTOPDF_BASE,"preview",fname)%fname
             inpfile = fullfname+".pdf"
             logging.info("fname=%s"%inpfile)        
             self.set_header("Content-Type","application/pdf")
             if os.path.exists(inpfile):
                 logging.info("found %s on disk"%fname)
-                self.write(open(inpfile).read())
+                with open(inpfile, "rb") as f: 
+                    self.write(f.read())
             else:
                 self.write("Not Found")                
             return
 
-        fullfname = "/home/ubuntu/tmp/htmltopdf/%s"%fname
+        fullfname = os.path.join(HTMLTOPDF_BASE,"htmltopdf",fname)
         inpfile = fullfname+".pdf"
         logging.info("fname=%s"%inpfile)        
         self.set_header("Content-Type","application/pdf")
         if os.path.exists(inpfile):
             logging.info("found %s on disk"%fname)
-            self.write(open(inpfile).read())
+            with open(inpfile, "rb") as f:
+                self.write(f.read())
         else:
             data = self.get_from_storage(fname)
             if data:
@@ -1352,7 +1591,7 @@ class HtmlToPdfHandler(BaseHandler):
         if action and action == "preview":
             while True:
                 fname=self.get_random_string(20)
-                fullfname = "/home/ubuntu/tmp/preview/%s"%fname
+                fullfname = os.path.join(HTMLTOPDF_BASE,"preview",fname)%fname
                 if os.path.exists(fullfname):
                     continue
                 else:
@@ -1360,7 +1599,7 @@ class HtmlToPdfHandler(BaseHandler):
         else:
             while True:
                 fname=self.get_random_string(20)
-                fullfname = "/home/ubuntu/tmp/htmltopdf/%s"%fname
+                fullfname = os.path.join(HTMLTOPDF_BASE,"htmltopdf",fname)
                 if os.path.exists(fullfname):
                     continue
                 elif self.exists_in_storage(fname):
@@ -1381,6 +1620,7 @@ class HtmlToPdfHandler(BaseHandler):
             f.write(jsonstr)
             f.close()            
 
+        os.makedirs(os.path.dirname(fullfname),exist_ok=True)
         inpfile = fullfname+".html"
         s = self.get_argument('content')
 
@@ -1392,11 +1632,21 @@ class HtmlToPdfHandler(BaseHandler):
         logging.info(outfile)
         logging.info(inpfile)
         cmdname = "/usr/local/bin/wkhtmltopdf.sh"
-        output = commands.getoutput("%s %s %s"%(cmdname, inpfile, outfile))
-        if action:
-            pdfurl="http://"+self.request.host+"/htmltopdf?fname=%s&action=%s"%(fname,action)
+        output = subprocess.getoutput("%s %s %s"%(cmdname, inpfile, outfile))
+        if not os.path.exists(outfile):
+            logging.error("wkhtmltopdf produced no output for %s: %s" % (fname, output))
         else:
-            pdfurl="http://"+self.request.host+"/htmltopdf?fname=%s"%fname
+            with open(outfile, "rb") as f:
+                pdf_bytes = f.read()
+            if cloud.storage.storage.putItem(fname, pdf_bytes, PDF_BUCKET):
+                logging.info("uploaded pdf %s to s3" % fname)
+            else:
+                logging.error("s3 upload failed for %s; pdf only available on this instance" % fname)
+        base = PUBLIC_BASE_URL if PUBLIC_BASE_URL else "http://" + self.request.host
+        if action:
+            pdfurl = "%s/htmltopdf?fname=%s&action=%s" % (base, fname, action)
+        else:
+            pdfurl = "%s/htmltopdf?fname=%s" % (base, fname)
         self.finish(dict(pdfurl=pdfurl,result="ok"))
 
 
@@ -1414,7 +1664,7 @@ class DownloadHandler(BaseHandler):
         logging.info(outfile)
         logging.info(inpfile)
         cmdname = "./excelinterop/phpexcel/socialcalc/export.php"
-        output = commands.getoutput("php %s %s %s %s"%(cmdname, inpfile, outfile, type))
+        output = subprocess.getoutput("php %s %s %s %s"%(cmdname, inpfile, outfile, type))
         logging.info(output)
         sessionfiledownloads["file"] = outfile
         sessionfiledownloads["type"] = type
@@ -1442,43 +1692,45 @@ class ImportHandler(BaseHandler):
 
 
     def post(self):
+        from excelinterop.socialcalc_interop import import_xlsx, import_xls, import_csv
+
         session = self.get_cookie("session")
 
         fname = self.request.files['upload'][0]['filename']
         fcontent = self.request.files['upload'][0]['body']
-        if (fname[-3:] != "msc") and (fname[-4:] != "msce") :
-            fullfname = "./excelinterop/phpexcel/socialcalc/tmp/"+fname
-            f = open(fullfname,"w")
-            f.write(fcontent)
-            f.close()
-            #logging.info("wrote "+fullfname)
-            cmdname = "./excelinterop/phpexcel/socialcalc/import.php"
-            output = commands.getoutput("php %s %s"%(cmdname, fullfname))
-            #logging.info("output is "+output)
-            i = output.index("$---$")
-            wbook = output[i+5:]
-            
+        fname_lower = fname.lower()
+
+        if fname_lower.endswith('.msc') or fname_lower.endswith('.msce'):
+            wbook = fcontent.decode('utf-8', errors='replace') if isinstance(fcontent, bytes) else fcontent
+        elif fname_lower.endswith('.xlsx'):
+            wbook = import_xlsx(fcontent)
+        elif fname_lower.endswith('.xls'):
+            wbook = import_xls(fcontent)
+        elif fname_lower.endswith('.csv'):
+            wbook = import_csv(fcontent)
         else:
-            wbook = fcontent
-    
+            wbook = import_xlsx(fcontent)
+
         sessionfileuploads[fname] = wbook
 
-        self.set_cookie("idinsession",str(1))
-
-        #logging.info(fname)
-        #logging.info(wbook)
+        self.set_cookie("idinsession", str(1))
 
         entry = {}
         entry['fname'] = fname
-        if (fname[-4:] == "msce"):
-            entry['sheetmscestr'] = wbook
-            entry['sheetstr'] = ""            
+        if fname_lower.endswith('msce'):
+            import urllib.parse
+            if wbook.startswith('%7B') or wbook.startswith('%7b'):
+                entry['sheetmscestr'] = wbook
+            else:
+                entry['sheetmscestr'] = urllib.parse.quote(wbook, safe='')
+            entry['sheetstr'] = ""
         else:
             entry['sheetmscestr'] = ""
-            entry['sheetstr'] = wbook                        
+            entry['sheetstr'] = wbook
 
         entry['session'] = session
-        self.render("importcollabload.html", entry=entry)        
+        self.render("importcollabload.html", entry=entry)
+
 
 
 class TickerJsonHandler(BaseHandler):
@@ -1498,7 +1750,7 @@ class TickerJsonHandler(BaseHandler):
         logging.info("ticker is ",tick1,tick2,tick3)
         cmdname = os.path.join(self.application.settings["util_path"],"msnparse.py")
         logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s %s %s %s"%(cmdname,"json",tick1,tick2,tick3))
+        sheetstr = subprocess.getoutput("python %s %s %s %s %s"%(cmdname,"json",tick1,tick2,tick3))
         self.finish(dict(data=sheetstr,result="ok"))        
 
 
@@ -1515,7 +1767,7 @@ class TickerHandler(BaseHandler):
 
         cmdname = os.path.join(self.application.settings["util_path"],"msnparse.py")
         logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s %s"%(cmdname,"none",ticker))
+        sheetstr = subprocess.getoutput("python %s %s %s"%(cmdname,"none",ticker))
         #sheetstr = util.simpledb.getFromSimpleDb(ticker)
         tickdata = util.ystockquote.get_all(ticker)
         logging.info(tickdata)
@@ -1533,7 +1785,7 @@ class TenYearDataHandler(BaseHandler):
 
         cmdname = os.path.join(self.application.settings["util_path"],"tenyeardata.py")
         logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s"%(cmdname,ticker))
+        sheetstr = subprocess.getoutput("python %s %s"%(cmdname,ticker))
         self.finish(dict(data=sheetstr,result="ok"))        
 
 class InsertHandler(BaseHandler):
@@ -1779,6 +2031,7 @@ class DropBoxHandler(BaseHandler):
     # Test code for automatic redirection from auth URL
 
     def get_dropbox_auth_flow(self, sessionid, csrftok=None):
+        import dropbox
         redirect_uri = "https://%s"%(self.request.host)+"/dropbox?action=dropbox-auth-finish"
         #redirect_uri = "/dropbox?action=dropbox-auth-finish"
         logging.info("redirect_uri is:%s",redirect_uri)
@@ -1800,10 +2053,11 @@ class DropBoxHandler(BaseHandler):
 
     # URL handler for /dropbox-auth-finish
     def dropbox_auth_finish(self, sessionid, request):
+        import dropbox
         try:
             logging.info(repr(request.arguments))
             req = {}
-            for i in request.arguments.keys():
+            for i in list(request.arguments.keys()):
                 req[i] = request.arguments[i][0]
             logging.info(repr(req))
             access_token, user_id, url_state = \
@@ -1826,23 +2080,30 @@ class DropBoxHandler(BaseHandler):
 
             #self.finish(dict(token=access_token))
             
-        except dropbox.client.DropboxOAuth2Flow.BadRequestException, e:
+        except dropbox.client.DropboxOAuth2Flow.BadRequestException as e:
             logging.info("bad_request")            
 
-        except dropbox.client.DropboxOAuth2Flow.BadStateException, e:
+        except dropbox.client.DropboxOAuth2Flow.BadStateException as e:
             # Start the auth flow again.
             redirect_to("/dropbox-auth-start")
-        except dropbox.client.DropboxOAuth2Flow.CsrfException, e:
+        except dropbox.client.DropboxOAuth2Flow.CsrfException as e:
             logging.info("csrf exception")            
 
-        except dropbox.client.DropboxOAuth2Flow.NotApprovedException, e:
+        except dropbox.client.DropboxOAuth2Flow.NotApprovedException as e:
             logging.info("not approved")            
             self.write("Please approve the app in order to login to Dropbox.")
-        except dropbox.client.DropboxOAuth2Flow.ProviderException, e:
+        except dropbox.client.DropboxOAuth2Flow.ProviderException as e:
             logging.info("Auth error: %s" % (e,))
 
         
     def get(self):
+        try:
+            import dropbox
+        except ImportError:
+            self.set_status(501)
+            self.write("Dropbox integration is temporarily unavailable during the Python 3 migration.")
+            self.finish()
+            return
         action = self.get_argument('action');
         session = self.get_cookie('session');
         logging.info('Action: '+action+', session: '+str(session))
@@ -1879,6 +2140,13 @@ class DropBoxHandler(BaseHandler):
     #        self.finish(dict(token=access_token))
 
     def post(self):
+        try:
+            import dropbox
+        except ImportError:
+            self.set_status(501)
+            self.write("Dropbox integration is temporarily unavailable during the Python 3 migration.")
+            self.finish()
+            return
         action = self.get_argument('action')
         #token = self.get_argument('dbToken')
         token = self.get_cookie('dbToken')
@@ -1889,18 +2157,18 @@ class DropBoxHandler(BaseHandler):
                 data = self.get_argument('string')
                 fname = self.get_argument('name')
                 response = client.put_file(fname, data)
-                print "uploaded: ", response
+                print("uploaded: ", response)
                 self.finish(dict(data="Done"))
-            except dropbox.rest.ErrorResponse, e:
+            except dropbox.rest.ErrorResponse as e:
                 logging.info(e)
                 self.finish(dict(data="Error"))
 
         elif action == 'listdir':
             try:
                 folder_metadata = client.metadata('/')
-                print "List of files:", folder_metadata
+                print("List of files:", folder_metadata)
                 self.finish(folder_metadata)
-            except dropbox.rest.ErrorResponse, e:
+            except dropbox.rest.ErrorResponse as e:
                 logging.info(e)
                 self.finish(dict(data="Error"))
 
@@ -1910,9 +2178,9 @@ class DropBoxHandler(BaseHandler):
                 f = client.get_file(self.get_argument('fname'))
                 fileData = f.read()
                 f.close()
-                print "downloaded file"
+                print("downloaded file")
                 self.finish(dict(text=fileData))
-            except dropbox.rest.ErrorResponse, e:
+            except dropbox.rest.ErrorResponse as e:
                 logging.info(e)
                 self.finish(dict(data="Error"))
 
@@ -1920,7 +2188,7 @@ class DropBoxHandler(BaseHandler):
             try:
                 metadata = client.file_delete(self.get_argument('fname'))
                 self.finish(dict(data="Done"))
-            except dropbox.rest.ErrorResponse, e:
+            except dropbox.rest.ErrorResponse as e:
                 logging.info(e)
                 self.finish(dict(data="Error"))
  
@@ -1934,7 +2202,7 @@ class InAppHandler(BaseHandler):
     def post(self):
         app = self.get_argument('app')
         user = self.get_argument('user')
-        print "app: "+app+", user: "+user
+        print("app: "+app+", user: "+user)
         # self.db.execute("UPDATE UserSheets SET purchased = 1 WHERE user = %s AND fname = %s", user, fname)
         check = self.db.query("SELECT id FROM purchases WHERE app = %s AND user = %s", app, user)
         if check:
@@ -2016,7 +2284,7 @@ class RestoreInAppHandler(BaseHandler):
             path = ["home",user,"securestore","restore", app]
             dirobj = cloud.storage.storage.getFile(dirpath)
             if (not dirobj) or (len(dirobj.files) == 0):
-                print "no directory found, no inapp initialised"
+                print("no directory found, no inapp initialised")
                 self.finish(dict(result="no"))
                 return
             fileobj = cloud.storage.storage.getFile(path)
@@ -2036,10 +2304,10 @@ class RestoreInAppHandler(BaseHandler):
         action = self.get_argument('action')
         appname = self.get_argument('appname')
         content = self.get_argument('content' ,None)
-        print "app is", appname
-        print "action is ", action
+        print("app is", appname)
+        print("action is ", action)
         if action == "inapp":
-            print "items are ",content
+            print("items are ",content)
             path = ["home",user,"securestore","restore",appname]
             dirpath = ["home",user,"securestore","restore"]
             dirobj = cloud.storage.storage.getFile(dirpath)
@@ -2057,7 +2325,7 @@ class RestoreInAppHandler(BaseHandler):
 
 class FinanceRecordKeeper(BaseHandler):
     def get(self):
-        print "Get of Finance Record"
+        print("Get of Finance Record")
         action = self.get_argument('action')
         user = self.get_current_user()
         if user == None:
@@ -2102,16 +2370,17 @@ class FinanceRecordKeeper(BaseHandler):
 
 class BusinessRecordKeeper(BaseHandler):
     def get(self):
-        print "Get of Business Record"
+        print("Get of Business Record")
         self.finish(dict(result="ok"))
     def post(self):
-        print "Post of Business Record"
+        print("Post of Business Record")
         self.finish(dict(result="ok"))
         
 
 def main():
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application())
+    print("DEBUG: Starting server on port", options.port)
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
 

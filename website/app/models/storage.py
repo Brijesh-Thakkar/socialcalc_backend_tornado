@@ -47,14 +47,14 @@ def deleteItem(coll, path, db='test'):
 
 
 if __name__ == "__main__":
-    print "hello"
+    print("hello")
     data = {}
     data["name"] = "test"
     data["email"] = "email"
     #createItem("email", data)
     d = getItem("users", "email")
-    print d
-    print d['name'],d['email']
+    print(d)
+    print(d['name'], d['email'])
     deleteItem("users", "email")
     d = getItem("users", "email")
-    print d
+    print(d)

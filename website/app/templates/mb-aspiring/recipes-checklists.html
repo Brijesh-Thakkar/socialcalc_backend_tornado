@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% module Template("header-head.html") %}	
+
+<body>
+
+{% module Template("header-nav.html") %}	
+
+    <!-- Page Content -->
+    <div class="container">
+
+        <!-- Page Heading/Breadcrumbs -->
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header">Recipes Checklists
+                    <small></small>
+                </h1>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/web/home/index.html">Home</a>
+                    </li>
+                    <li class="breadcrumb-item"><a href="/web/home/portfolio-appbundles.html">App Bundles</a>
+                    </li>
+                    <li class="breadcrumb-item active">Recipes Checklists</li>
+                </ol>
+            </div>
+        </div>
+        <!-- /.row -->
+
+        <!-- Portfolio Item Row -->
+        <div class="row">
+
+            <div class="col-md-8">
+                <div id="carousel-example-generic" class="carousel slide" data-bs-ride="carousel">
+                    <!-- Indicators -->
+                    <ol class="carousel-indicators">
+                        <li data-bs-target="#carousel-example-generic" data-bs-slide-to="0" class="active"></li>
+                        <li data-bs-target="#carousel-example-generic" data-bs-slide-to="1"></li>
+                        <li data-bs-target="#carousel-example-generic" data-bs-slide-to="2"></li>
+                    </ol>
+
+                    <!-- Wrapper for slides -->
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <img class="img-fluid" src="{{ static_url("images/portfolio-item/AppBundles/Recipes/sc1.png") }}" alt="">
+                        </div>
+                        <div class="carousel-item">
+                            <img class="img-fluid" src="{{ static_url("images/portfolio-item/AppBundles/Recipes/sc2.png") }}" alt="">
+                        </div>
+                        <div class="carousel-item">
+                            <img class="img-fluid" src="{{ static_url("images/portfolio-item/AppBundles/Recipes/sc3.png") }}" alt="">
+                        </div>
+                        <div class="carousel-item">
+                            <img class="img-fluid" src="{{ static_url("images/portfolio-item/AppBundles/Recipes/sc4.png") }}" alt="">
+                        </div>
+                        <div class="carousel-item">
+                            <img class="img-fluid" src="{{ static_url("images/portfolio-item/AppBundles/Recipes/sc5.png") }}" alt="">
+                        </div>
+
+
+
+                    </div>
+
+                    <!-- Controls -->
+                    <a class="carousel-control-prev" href="#carousel-example-generic" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </a>
+                    <a class="carousel-control-next" href="#carousel-example-generic" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <h3>App Description</h3>
+                <p>Develop nutritious recipes cost effectively, do healthy shopping and check your expense transactions, plan and track your fitness activities with Recipes Checklists.</p>
+                <h3>Features</h3>
+                <ul>
+                    <li>Record your favourite recipes and manage the recipe cost along with it.</li>
+                    <li>Manage, organize and e-mail your shopping list<li>
+                    <li>Locally save, email and print the file</li>
+                    <li>Keep a track of your exercise routine on a monthly and weekly basis.</li>
+                    <li>Managing your financial accounts.</li>
+                    
+                </ul>
+            </div>
+
+        </div>
+        <!-- /.row -->
+
+	
+	<!-- link to stores for the product -->
+	<!-- Related Projects Row -->
+        <div class="row">
+            <div class="col-lg-12">
+                <h3 class="page-header">Buy</h3>
+            </div>
+	  
+                <div class="col-md-3">
+                    <a class="btn btn-lg btn-default btn-block  buy-button" href="https://itunes.apple.com/us/app-bundle/recipes-checklists/id942865109?mt=8">Apple</a>
+                </div>
+                <!--<div class="col-md-3">
+                    <a class="btn btn-lg btn-default btn-block"  href="https://play.google.com/store/apps/details?id=com.aspiring.businessquote">Google Play</a>
+                </div>
+                <div class="col-md-3">
+                    <a class="btn btn-lg btn-default btn-block" href="http://www.amazon.com/Business-Quote-Kindle-Tablet-Edition/dp/B007FFY0HC/ref=pd_sim_mas_1?ie=UTF8&refRID=1J0H36HXEP5355Q79HKG">Amazon</a>
+                </div>
+                <div class="col-md-3">
+                    <a class="btn btn-lg btn-default btn-block" href="http://www.barnesandnoble.com/w/price-quote-aspiring-investments-corp/1118966270?ean=2940147183700">Nook</a>
+                </div>-->
+                
+	</div>
+	
+	<!-- Related Projects Row -->
+        <div class="row">
+
+            <div class="col-lg-12">
+                <h3 class="page-header">Related Products</h3>
+            </div>
+
+            <div class="col-sm-3 col-6">
+                <a href="/web/home/home-budget.html">
+                    <img class="img-fluid img-hover img-related" src="{{ static_url("images/portfolio-item/AppBundles/Recipes/Related/homebudget.png") }}" title="Home Budget">
+                </a>
+            </div>
+
+            <div class="col-sm-3 col-6">
+                <a href="/web/home/checkbook-register.html">
+                    <img class="img-fluid img-hover img-related" src="{{ static_url("images/portfolio-item/AppBundles/Recipes/Related/checkbook.png") }}"  title="Checkbook Register">
+                </a>
+            </div>
+
+            <div class="col-sm-3 col-6">
+                <a href="/web/home/cash-receipt.html"><!--quote ledger purchse order client list-->
+                    <img class="img-fluid img-hover img-related" src="{{ static_url("images/portfolio-item/AppBundles/Recipes/Related/cash.png") }}"  title="Cash Receipt">
+                </a>
+            </div>
+
+             <div class="col-sm-3 col-6">
+                <a href="/web/home/party-planner.html">
+                    <img class="img-fluid img-hover img-related" src="{{ static_url("images/portfolio-item/AppBundles/Recipes/Related/party.png") }}"  title="Party Planner">
+                </a>
+            </div>
+
+            
+
+
+            
+
+        </div>
+        <!-- /.row -->
+
+
+        <!-- Product FAQ -->
+        <!--
+        <div class="row">
+
+        <div class="col-lg-12">
+           <h3 class="page-header">Frequently Asked Questions</h3>
+            </div>
+
+      
+            <div class="col-lg-12">
+                <div class="panel-group" id="accordion">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="panel-title">
+                                <a class="accordion-toggle" data-bs-toggle="collapse" data-parent="#accordion" href="#collapseOne">Lorem ipsum dolor sit amet, consectetur adipiscing elit?</a>
+                            </h4>
+                        </div>
+                        <div id="collapseOne" class="panel-collapse collapse">
+                            <div class="card-body">
+                                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                            </div>
+                        </div>
+                    </div>
+                     
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="panel-title">
+                                <a class="accordion-toggle" data-bs-toggle="collapse" data-parent="#accordion" href="#collapseTwo">Curabitur eget leo at velit imperdiet varius. In eu ipsum vitae velit congue iaculis vitae at risus?</a>
+                            </h4>
+                        </div>
+                        <div id="collapseTwo" class="panel-collapse collapse">
+                            <div class="card-body">
+                                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                            </div>
+                        </div>
+                    </div>
+                     
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="panel-title">
+                                <a class="accordion-toggle" data-bs-toggle="collapse" data-parent="#accordion" href="#collapseThree">Aenean consequat lorem ut felis ullamcorper?</a>
+                            </h4>
+                        </div>
+                        <div id="collapseThree" class="panel-collapse collapse">
+                            <div class="card-body">
+                                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                            </div>
+                        </div>
+                    </div>
+                     
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="panel-title">
+                                <a class="accordion-toggle" data-bs-toggle="collapse" data-parent="#accordion" href="#collapseFour">Lorem ipsum dolor sit amet, consectetur adipiscing elit?</a>
+                            </h4>
+                        </div>
+                        <div id="collapseFour" class="panel-collapse collapse">
+                            <div class="card-body">
+                                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                            </div>
+                        </div>
+                    </div>
+                     
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="panel-title">
+                                <a class="accordion-toggle" data-bs-toggle="collapse" data-parent="#accordion" href="#collapseFive">Curabitur eget leo at velit imperdiet varius. In eu ipsum vitae velit congue iaculis vitae at risus?</a>
+                            </h4>
+                        </div>
+                        <div id="collapseFive" class="panel-collapse collapse">
+                            <div class="card-body">
+                                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                            </div>
+                        </div>
+                    </div>
+                     
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="panel-title">
+                                <a class="accordion-toggle" data-bs-toggle="collapse" data-parent="#accordion" href="#collapseSix">Aenean consequat lorem ut felis ullamcorper?</a>
+                            </h4>
+                        </div>
+                        <div id="collapseSix" class="panel-collapse collapse">
+                            <div class="card-body">
+                                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                            </div>
+                        </div>
+                    </div>
+                     
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="panel-title">
+                                <a class="accordion-toggle" data-bs-toggle="collapse" data-parent="#accordion" href="#collapseSeven">Lorem ipsum dolor sit amet, consectetur adipiscing elit?</a>
+                            </h4>
+                        </div>
+                        <div id="collapseSeven" class="panel-collapse collapse">
+                            <div class="card-body">
+                                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="panel-title">
+                                <a class="accordion-toggle" data-bs-toggle="collapse" data-parent="#accordion" href="#collapseEight">Curabitur eget leo at velit imperdiet varius. In eu ipsum vitae velit congue iaculis vitae at risus?</a>
+                            </h4>
+                        </div>
+                        <div id="collapseEight" class="panel-collapse collapse">
+                            <div class="card-body">
+                                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                            </div>
+                        </div>
+                    </div>
+                   
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="panel-title">
+                                <a class="accordion-toggle" data-bs-toggle="collapse" data-parent="#accordion" href="#collapseNine">Aenean consequat lorem ut felis ullamcorper?</a>
+                            </h4>
+                        </div>
+                        <div id="collapseNine" class="panel-collapse collapse">
+                            <div class="card-body">
+                                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                            </div>
+                        </div>
+                    </div>
+                   
+                </div>
+                
+            </div>
+           
+        </div>
+       -->
+    
+	
+	
+	
+        <hr>
+
+        <!-- Footer -->
+	{% module Template("footer.html") %}
+	
+    </div>
+    <!-- /.container -->
+
+    {% module Template("footer-scripts.html") %}	
+
+</body>
+
+</html>

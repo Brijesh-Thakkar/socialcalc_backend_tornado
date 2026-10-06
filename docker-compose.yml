@@ -1,0 +1,188 @@
+services:
+
+  # ── Shared memcache (session store shared across both app instances) ───────
+  memcache:
+    image: memcached:1.6-alpine
+    networks:
+      - app_network
+    expose:
+      - "11211"
+    restart: unless-stopped
+
+  # ── Local S3-compatible storage (MinIO) — used for local dev and CI ────────
+  # Production deployments: remove this service and set real AWS credentials in .env
+  minio:
+    # minio/minio and minio/mc are gone from Docker Hub and quay.io/minio/minio now
+    # requires authentication, so there is no official public image. This is the last
+    # Bitnami build (frozen, receives no security updates) — fine for local dev/CI,
+    # NOT for production, which should use real S3 (see .env.example). It runs as
+    # uid 1001, so data lives in /bitnami/minio/data and the stock entrypoint is used.
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+    expose:
+      - "9000"
+      - "9001"
+    networks:
+      - app_network
+    volumes:
+      - minio_data:/bitnami/minio/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  # ── One-shot init: creates required S3 buckets inside MinIO ───────────────
+  # minio/mc was removed from Docker Hub, so buckets are created with the S3 API
+  # via aws-cli. Idempotent: existing buckets are left untouched (private, like
+  # the previous `mc mb --ignore-existing`). Waits for MinIO to be healthy.
+  createbuckets:
+    image: amazon/aws-cli:2.17.0
+    networks:
+      - app_network
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - AWS_DEFAULT_REGION=us-east-1
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for bucket in mc2-app-storage-useast1 aspiring-pdf-files; do
+          aws --endpoint-url http://minio:9000 s3api head-bucket --bucket "$$bucket" 2>/dev/null \
+            || aws --endpoint-url http://minio:9000 s3api create-bucket --bucket "$$bucket" \
+            || exit 1
+        done
+
+  # ── Tornado application instance 1 ───────────────────────────────────────
+  app1:
+    build: .
+    expose:
+      - "8888"
+    networks:
+      - app_network
+    env_file:
+      - .env
+    environment:
+      - MEMCACHE_HOST=memcache
+      - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
+      - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+    depends_on:
+      memcache:
+        condition: service_started
+      createbuckets:
+        condition: service_completed_successfully
+      meshkit-sidecar:
+        condition: service_started
+      meshkit-sidecar-kubo:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Tornado application instance 2 ───────────────────────────────────────
+  app2:
+    build: .
+    expose:
+      - "8888"
+    networks:
+      - app_network
+    env_file:
+      - .env
+    environment:
+      - MEMCACHE_HOST=memcache
+      - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
+      - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
+    depends_on:
+      memcache:
+        condition: service_started
+      createbuckets:
+        condition: service_completed_successfully
+      meshkit-sidecar:
+        condition: service_started
+      meshkit-sidecar-kubo:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── MeshKit IPFS sidecar (REST gateway for SocialCalc save/load) ─────────
+  meshkit-sidecar:
+    build: ./meshkit-sidecar
+    expose:
+      - "5050"
+    env_file: ./meshkit-sidecar/.env
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # ── Kubo IPFS daemon (block-storage backend for meshkit-sidecar-kubo) ─────
+  kubo:
+    image: ipfs/kubo:v0.29.0
+    expose:
+      - "5001"   # RPC API — reachable by meshkit-sidecar-kubo inside the network
+      - "4001"   # Swarm / P2P
+    environment:
+      - IPFS_PROFILE=server
+    volumes:
+      - kubo_data:/data/ipfs
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "ipfs", "id"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── MeshKit Kubo sidecar (REST gateway for Kubo-backed IPFS storage) ──────
+  meshkit-sidecar-kubo:
+    build: ./meshkit-sidecar-kubo
+    expose:
+      - "5051"
+    environment:
+      - IPFS_API_URL=http://kubo:5001
+      - MESHKIT_KUBO_SIDECAR_PORT=5051
+    networks:
+      - app_network
+    depends_on:
+      kubo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── MeshKit IPFS proxy ────────────────────────────────────────────────────
+  meshkit-service:
+    build: ./meshkit-service
+    expose:
+      - "4000"
+    env_file: ./meshkit-service/.env
+    environment:
+      - PORT=4000
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # ── Nginx reverse proxy (only service that binds a host port) ─────────────
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    networks:
+      - app_network
+    volumes:
+      - ./configs/nginx.docker.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app1
+      - app2
+    restart: unless-stopped
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  minio_data:
+  kubo_data:

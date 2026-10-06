@@ -1,0 +1,65 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+venv/
+
+# Large test/sample files not needed in image
+excelinterop/phpexcel/socialcalc/tmp/
+excelinterop/phpexcel/Classes/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+credentials
+boto.cfg
+
+# Docker artifacts
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+.claude/
+
+# Node / Playwright (test tooling, not needed in image)
+node_modules/
+package.json
+package-lock.json
+playwright.config.ts
+tests/
+playwright-report/
+test-results/
+
+# Misc
+.DS_Store
+*.tmp
+*.bak
+*.orig
+*~
+
+# Legacy/unused code not needed in image
+tornadoaic/
+tornado_legacy/
+website/
+website_tickervalue/
+demos/
+testcases/
+test-script.py
+
+# Local storage
+local_storage/
+*.sqlite
+*.db
