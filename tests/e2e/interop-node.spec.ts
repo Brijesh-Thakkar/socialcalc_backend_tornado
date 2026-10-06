@@ -173,3 +173,111 @@ test.describe.serial('M3 /nodeinterop/health and failure mapping', () => {
     expect((await page.request.get('/nodeinterop/health')).status()).toBe(200);
   });
 });
+
+// ───────────────────────────── auth + publish/open ─────────────────────────────
+
+/** Run a shell snippet inside the node-interop container (curl is available there). */
+function inNode(script: string, env: string[] = []): string {
+  const args = ['compose', 'exec', '-T', ...env.flatMap((e) => ['-e', e]), 'node-interop', 'sh', '-c', script];
+  const r = spawnSync('docker', args, { cwd: process.cwd(), encoding: 'utf8' });
+  expect(r.status, r.stderr).toBe(0);
+  return r.stdout;
+}
+const nodeSecret = () => inNode('printf %s "$NODE_INTEROP_SHARED_SECRET"').trim();
+
+test.describe('M3 interop auth: X-Interop-Token on /v1/*', () => {
+  const probe = (header: string) =>
+    inNode(`curl -s -o /dev/null -w '%{http_code}' ${header} 'http://localhost:5055/v1/sheets/nothing?owner=nobody'`).trim();
+
+  test('missing token -> 401, wrong token -> 401, right token -> served, /health stays open', () => {
+    expect(probe('')).toBe('401');
+    expect(probe("-H 'X-Interop-Token: wrong'")).toBe('401');
+    expect(probe(`-H 'X-Interop-Token: ${nodeSecret()}'`)).toBe('404');
+    expect(inNode("curl -s -o /dev/null -w '%{http_code}' http://localhost:5055/health").trim()).toBe('200');
+  });
+
+  test('NODE_INTEROP_SHARED_SECRET unset -> /v1/* answers 503 (fails closed)', () => {
+    const out = inNode(
+      "node app.js >/dev/null 2>&1 & P=$!; sleep 4; " +
+      "curl -s -o /dev/null -w '%{http_code}' -H 'X-Interop-Token: anything' 'http://localhost:5099/v1/sheets/a?owner=u'; kill $P",
+      ['PORT=5099', 'NODE_INTEROP_SHARED_SECRET=']).trim();
+    expect(out).toBe('503');
+  });
+});
+
+test.describe.serial('M3 separate Node user records (no shared hashes)', () => {
+  test('registering the same email in Node does not touch the Tornado account', async ({ request, testUser, authenticatedPage }) => {
+    // testUser is registered in Tornado by authenticatedPage (sha256_crypt record under ["home","users",email]).
+    const reg = inNode(`curl -s -o /dev/null -w '%{http_code}' -d 'email=${testUser.email}&password=${testUser.password}' http://localhost:5055/register`).trim();
+    expect(reg).toBe('200');
+    const nodeLogin = inNode(`curl -s -o /dev/null -w '%{http_code}' -d 'email=${testUser.email}&password=${testUser.password}' http://localhost:5055/login`).trim();
+    expect(nodeLogin).toBe('302');
+    const nodeBadLogin = inNode(`curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -d 'email=${testUser.email}&password=wrong-pass' http://localhost:5055/login`).trim();
+    expect(nodeBadLogin).not.toContain('/save');
+    // Tornado still logs the same user in with its own hash
+    const t = await request.post('/login', { form: { email: testUser.email, password: testUser.password }, maxRedirects: 0 });
+    expect(t.status()).toBe(302);
+    expect(t.headers()['location']).toContain('/save');
+  });
+});
+
+test.describe.serial('M3 publish / open (copy-by-name through the sidecar)', () => {
+  const NAME = 'GST% ₹ हिंदी publish';
+
+  test('anonymous callers are rejected', async ({ request }) => {
+    expect((await request.post('/nodeinterop/publish', { form: { name: 'x' } })).status()).toBe(401);
+    expect((await request.post('/nodeinterop/open', { form: { name: 'x' } })).status()).toBe(401);
+  });
+
+  for (const c of CASES) {
+    test(`Tornado -> Node -> Tornado keeps the bytes: ${c.file}`, async ({ authenticatedPage: page, testUser }) => {
+      const data = read(c.file);
+      expect((await page.request.post('/save', { form: { fname: NAME, data } })).status()).toBe(200);
+      const stored = (await (await page.request.post('/insert', { form: { filename: NAME } })).json()).data;   // Tornado's own copy
+
+      const pub = await page.request.post('/nodeinterop/publish', { form: { name: NAME } });
+      expect(pub.status(), await pub.text()).toBe(200);
+      const pubBody = await pub.json();
+      expect(pubBody).toMatchObject({ result: 'ok', name: NAME, size: Buffer.byteLength(stored, 'utf8') });
+      expect(JSON.stringify(pubBody)).not.toContain(nodeSecret());
+
+      // what Node holds, fetched with the token
+      const viaNode = JSON.parse(inNode(
+        `curl -s -H "X-Interop-Token: $NODE_INTEROP_SHARED_SECRET" "http://localhost:5055/v1/sheets/$(node -e 'console.log(encodeURIComponent(process.argv[1]))' '${NAME}')?owner=${encodeURIComponent(testUser.email)}"`));
+      expect(viaNode.savestr).toBe(stored);
+
+      // open it back under another name: byte-equal again
+      const as = NAME + ' copy';
+      const open = await page.request.post('/nodeinterop/open', { form: { name: NAME, as } });
+      expect(open.status(), await open.text()).toBe(200);
+      const back = await (await page.request.post('/insert', { form: { filename: as } })).json();
+      expect(back.data).toBe(stored);
+      expect(sha(back.data)).toBe(sha(stored));
+      // and the opened sheet is also resolvable by Node's own (shared-bucket) storage code
+      expect(node('raw', testUser.email, as).data).toBe(stored);
+    });
+  }
+
+  test('open refuses to overwrite unless overwrite=yes; unknown sheets are 404', async ({ authenticatedPage: page }) => {
+    await page.request.post('/save', { form: { fname: 'ow', data: read('invoice.xlsx.sc') } });
+    expect((await page.request.post('/nodeinterop/publish', { form: { name: 'ow' } })).status()).toBe(200);
+    await page.request.post('/save', { form: { fname: 'ow', data: read('customers.csv.sc') } });
+    expect((await page.request.post('/nodeinterop/open', { form: { name: 'ow' } })).status()).toBe(409);
+    expect((await page.request.post('/nodeinterop/open', { form: { name: 'ow', overwrite: 'yes' } })).status()).toBe(200);
+    expect((await (await page.request.post('/insert', { form: { filename: 'ow' } })).json()).data).toBe(read('invoice.xlsx.sc').trim());
+    expect((await page.request.post('/nodeinterop/open', { form: { name: 'never-published', as: 'x2' } })).status()).toBe(404);
+    expect((await page.request.post('/nodeinterop/publish', { form: { name: 'no-such-sheet' } })).status()).toBe(404);
+  });
+
+  test('publish with the sidecar stopped -> 502, paused -> 504', async ({ authenticatedPage: page }) => {
+    await page.request.post('/save', { form: { fname: 'down', data: read('invoice.xlsx.sc') } });
+    sh('docker compose stop node-interop');
+    try {
+      expect((await page.request.post('/nodeinterop/publish', { form: { name: 'down' } })).status()).toBe(502);
+    } finally { sh('docker compose start node-interop'); await waitHealthy(); }
+    sh(`docker pause ${cid()}`);
+    try {
+      expect((await page.request.post('/nodeinterop/publish', { form: { name: 'down' }, timeout: 60000 })).status()).toBe(504);
+    } finally { sh(`docker unpause ${cid()}`); await waitHealthy(); }
+  });
+});
