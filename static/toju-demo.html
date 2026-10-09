@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<!--
+  toju-demo.html — small UI hook for the MOCK-BACKED toju (Storacha-Solana-Sdk) sheet storage.
+  Mirrors the thin meshkit/Helia sidecar UI pattern: a dev page that calls the Tornado /toju/*
+  routes (which proxy the toju-sidecar, which drives @toju.network/sol against the local mock).
+  Served at /static/toju-demo.html. Requires a logged-in session (the signed `user` cookie),
+  same as the meshkit and interop routes. THIS IS MOCK-BACKED: no real IPFS, Solana or money.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>toju storage (MOCK-BACKED)</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 760px; margin: 24px auto; padding: 0 16px; color: #1a1a1a; }
+    h1 { font-size: 20px; } .mock { background:#fff3cd; border:1px solid #ffe08a; padding:8px 12px; border-radius:6px; font-size:13px; }
+    textarea { width: 100%; height: 160px; font-family: monospace; font-size: 13px; }
+    button { padding: 8px 14px; margin: 4px 4px 4px 0; cursor: pointer; }
+    label { font-weight: 600; font-size: 13px; } input { padding: 6px; }
+    pre { background:#f5f5f5; padding:10px; border-radius:6px; overflow:auto; font-size:12px; white-space:pre-wrap; }
+    .row { margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>Save sheet to IPFS &amp; pay with SOL <span style="font-weight:400">— toju</span></h1>
+  <p class="mock"><strong>MOCK-BACKED.</strong> This talks to a local mock of the toju.network
+  backend: no real IPFS pinning, no real Solana transaction, no money. See
+  <code>toju-mock/CONTRACT.md</code>.</p>
+
+  <div class="row">
+    <label>Sheet content (SocialCalc save string)</label><br />
+    <textarea id="content">version:1.5
+cell:A1:t:चालान ₹ GST%
+cell:B1:v:9374.68
+</textarea>
+  </div>
+  <div class="row">
+    <label>Filename</label> <input id="fname" value="invoice.msc" />
+    <label>Duration (days)</label> <input id="days" value="1" size="4" />
+    <button onclick="save()">Save to toju</button>
+  </div>
+  <div class="row">
+    <label>CID</label> <input id="cid" size="60" placeholder="bafk…" />
+    <button onclick="retrieve()">Retrieve</button>
+    <button onclick="status()">Status</button>
+    <button onclick="health()">Sidecar health</button>
+  </div>
+  <div class="row"><label>Result</label><pre id="out">—</pre></div>
+
+<script>
+  const show = (x) => { document.getElementById('out').textContent =
+    (typeof x === 'string') ? x : JSON.stringify(x, null, 2); };
+
+  async function save() {
+    const body = new URLSearchParams();
+    body.set('content', document.getElementById('content').value);
+    body.set('fname', document.getElementById('fname').value);
+    body.set('durationDays', document.getElementById('days').value);
+    try {
+      const r = await fetch('/toju/save', { method: 'POST', credentials: 'include', body });
+      const j = await r.json();
+      if (j.cid) document.getElementById('cid').value = j.cid;
+      show({ http: r.status, ...j });
+    } catch (e) { show('error: ' + e.message); }
+  }
+  async function retrieve() {
+    const cid = encodeURIComponent(document.getElementById('cid').value);
+    try {
+      const r = await fetch('/toju/retrieve/' + cid, { credentials: 'include' });
+      const t = await r.text();
+      show('HTTP ' + r.status + '\n\n' + t);
+    } catch (e) { show('error: ' + e.message); }
+  }
+  async function status() {
+    const cid = encodeURIComponent(document.getElementById('cid').value);
+    try { const r = await fetch('/toju/status/' + cid, { credentials: 'include' }); show({ http: r.status, ...(await r.json()) }); }
+    catch (e) { show('error: ' + e.message); }
+  }
+  async function health() {
+    try { const r = await fetch('/toju/health', { credentials: 'include' }); show({ http: r.status, ...(await r.json()) }); }
+    catch (e) { show('error: ' + e.message); }
+  }
+</script>
+</body>
+</html>
