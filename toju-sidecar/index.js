@@ -35,7 +35,16 @@ const { Client, Environment, createDepositTxn, getUserUploadHistory } = require(
 const PORT = parseInt(process.env.TOJU_SIDECAR_PORT || '5056', 10);
 const TOJU_API_URL = (process.env.TOJU_API_URL || 'http://localhost:5057').replace(/\/$/, '');
 const SHARED_SECRET = process.env.TOJU_SHARED_SECRET || '';
-const MODE = (process.env.TOJU_MODE || 'mock').toLowerCase();         // 'mock' | 'real'
+// TOJU_MODE must be set EXPLICITLY — there is NO silent default to mock, so a misconfigured
+// deployment can never quietly pretend to be real (or quietly be a mock). Allowed: mock | real.
+const MODE = (process.env.TOJU_MODE || '').toLowerCase();
+if (MODE !== 'mock' && MODE !== 'real') {
+  console.error(
+    'FATAL: TOJU_MODE must be set explicitly to "mock" or "real" (got %j). Refusing to start.',
+    process.env.TOJU_MODE || ''
+  );
+  process.exit(1);
+}
 const SOLANA_NETWORK = (process.env.SOLANA_NETWORK || 'devnet').toLowerCase();
 const ALLOW_MAINNET = process.env.ALLOW_MAINNET === 'true';
 const DEFAULT_DURATION_DAYS = parseInt(process.env.TOJU_DEFAULT_DURATION_DAYS || '1', 10);
