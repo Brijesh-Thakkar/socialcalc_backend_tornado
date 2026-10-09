@@ -27,6 +27,7 @@ import json
 import cloud.storage.storage
 import cloud.authenticate.user
 from handlers import interop
+from handlers.cors import CorsMixin
 
 from tornado.options import define, options
 from util.amazon_ses import AmazonSES,EmailMessage
@@ -445,7 +446,10 @@ class SearchHandler(BaseHandler):
         argument["entries"] = entries
         self.render("allusersheets.html", argument=argument)
 
-class WebAppHandler(BaseHandler):
+class WebAppHandler(CorsMixin, BaseHandler):
+    # Session cookie is sent cross-origin by the app's web build, so credentials are allowed
+    # (only ever for origins listed in ALLOWED_ORIGINS, never with a wildcard).
+    cors_allow_credentials = True
     # add error cases also
     def get_user_id(self):
         return self.get_argument("uuid")
@@ -1535,14 +1539,10 @@ class IconImgHandler(BaseHandler):
         imgurl = "%s/iconimg?fname=%s" % (base, fname)
         self.finish(dict(imgurl=imgurl,result="ok"))
 
-class HtmlToPdfHandler(BaseHandler):
-    def set_default_headers(self):
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.set_header("Access-Control-Allow-Headers", "Content-Type")
-    def options(self):
-        self.set_status(204)
-        self.finish()
+class HtmlToPdfHandler(CorsMixin, BaseHandler):
+    # Anonymous endpoint, historically open to every origin: "*" by default, never with credentials.
+    cors_env_var = "HTMLTOPDF_ALLOWED_ORIGINS"
+    cors_default_origins = "*"
     def exists_in_storage(self,fname):
         return cloud.storage.storage.existsItem(fname, PDF_BUCKET)
     def get_from_storage(self,fname):

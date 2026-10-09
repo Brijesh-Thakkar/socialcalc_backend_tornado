@@ -2,12 +2,14 @@ FROM python:3.14-slim-bookworm
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (fonts-noto-core provides Noto Sans Devanagari etc. so
+# wkhtmltopdf can render Hindi invoice text instead of dropping the glyphs)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         wkhtmltopdf \
         xvfb \
-	xauth && \
+	xauth \
+        fonts-noto-core && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
