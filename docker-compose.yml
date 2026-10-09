@@ -74,6 +74,9 @@ services:
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
       - FASTAPI_INTEROP_URL=http://fastapi-interop:5053
+      # MOCK-BACKED toju (Storacha-Solana-Sdk) sidecar — IPFS+SOL sheet storage
+      - TOJU_SIDECAR_URL=http://toju-sidecar:5056
+      - TOJU_SHARED_SECRET=${TOJU_SHARED_SECRET:?set TOJU_SHARED_SECRET in .env (see .env.example)}
     depends_on:
       fastapi-interop:
         condition: service_healthy
@@ -101,6 +104,9 @@ services:
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
       - FASTAPI_INTEROP_URL=http://fastapi-interop:5053
+      # MOCK-BACKED toju (Storacha-Solana-Sdk) sidecar — IPFS+SOL sheet storage
+      - TOJU_SIDECAR_URL=http://toju-sidecar:5056
+      - TOJU_SHARED_SECRET=${TOJU_SHARED_SECRET:?set TOJU_SHARED_SECRET in .env (see .env.example)}
     depends_on:
       fastapi-interop:
         condition: service_healthy
@@ -193,6 +199,39 @@ services:
       timeout: 5s
       retries: 6
       start_period: 20s
+    restart: unless-stopped
+
+  # ── toju mock backend (MOCK-BACKED) ***NOT the real toju.network server*** ──────
+  # Local stand-in implementing exactly the API @toju.network/sol calls. No IPFS, no
+  # Solana, no money. See toju-mock/CONTRACT.md. Internal network only.
+  toju-mock:
+    build: ./toju-mock
+    expose:
+      - "5057"
+    environment:
+      - TOJU_MOCK_PORT=5057
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # ── toju sidecar (MOCK-BACKED): wraps @toju.network/sol, driven against toju-mock ─
+  # Tornado calls it over HTTP (handlers/toju.py). devnet only; refuses mainnet unless
+  # ALLOW_MAINNET=true (never set). Internal network only.
+  toju-sidecar:
+    build: ./toju-sidecar
+    expose:
+      - "5056"
+    environment:
+      - TOJU_SIDECAR_PORT=5056
+      - TOJU_API_URL=http://toju-mock:5057
+      - TOJU_SHARED_SECRET=${TOJU_SHARED_SECRET:?set TOJU_SHARED_SECRET in .env (see .env.example)}
+      - TOJU_MODE=mock
+      - SOLANA_NETWORK=devnet
+    depends_on:
+      toju-mock:
+        condition: service_started
+    networks:
+      - app_network
     restart: unless-stopped
 
   # ── Nginx reverse proxy (only service that binds a host port) ─────────────
