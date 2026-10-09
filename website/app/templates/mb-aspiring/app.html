@@ -1,0 +1,400 @@
+<ng-view></ng-view>
+
+<div class="alert" id="alert-div" style="display:none;"></div>
+
+
+<script type="text/ng-template" id="home.html">
+ 
+	<div class="header-bar">
+		<span class="header-label" ng-click="switchToHome()">Aspiring Apps</span>
+        <!--<div class="login-btn" ng-click="startLogin()"><i class="fa fa-user"></i></div>-->
+         <button class="login-btn" uib-popover-template="user.templateUrl"  popover-trigger="focus"  popover-placement="bottom" popover-title="{{!user.title}}" type="button" class="btn btn-default"><i class="fa fa-user"></i></button>
+	</div>
+
+	<div id="content">
+       
+       <ul class="content-ul">
+	        <li class="content-li" ng-repeat="app in apps">
+
+	            <div class="content-inner">
+		            <img ng-src="{{!app.src}}" class="content-img" ng-click="loadWebApp(app.name)">
+		        	  <div ng-click="loadWebApp(app.name)" class="content-a">{{!app.name}}</div>
+	            </div>
+
+	        	
+
+	        </li>
+	    </ul> 
+
+
+
+
+	</div>
+ 
+</script>
+
+<script type="text/ng-template" id="loginPopoverTemplate.html">
+        <div class="mb-3">
+            <div ng-click="startLogin()" class="login-logout" ng-show="user.logIn"><i class="fa fa-sign-in"></i>&nbsp;Log in</div>
+            <div ng-click="startLogout()" class="login-logout" ng-show="user.logOut"><i class="fa fa-sign-out"></i>&nbsp;Log out</div>
+        </div>
+</script>
+
+<script type="text/ng-template" id="spreadsheet.html">
+
+	 
+		<div class="header-bar">
+      <div class="back-btn" ng-click="backToList()"><i class="fa fa-home"></i></div>
+      <span class="header-label">{{! webAppName }}</span>
+      <span class="editing-label">Editing: {{! currentFile }}</span>
+		</div>
+		
+		<div class="dropdown options-bar">
+		  <button class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="fa fa-desktop"></i>&nbsp;File
+			<span class="caret"></span></button>
+		    <ul class="dropdown-menu">
+			    <li><a ng-click="save()">Save</a></li>
+			    <li><a ng-click="saveAs()">Save As</a></li>
+          <li><a ng-click="list()">List Files</a></li>
+			    <li><a ng-click="email('lg')">Email</a></li>
+          <li><a ng-click="export('md')">Export as Csv</a></li>
+			    <li><a ng-click="print()">Print</a></li>
+			    
+		    </ul>
+		</div>
+
+    <div class="dropdown cloud-options-bar">
+      <button class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="fa fa-cloud"></i>&nbsp;Sync
+      <span class="caret"></span></button>
+        <ul class="dropdown-menu">
+          <li><a ng-click="cloudUpdate()">Update</a></li>
+          <li><a ng-click="cloudSave()">Sync to device</a></li>
+          <li><a ng-click="listCloudFiles()">List files</a></li>
+        </ul>
+    </div>
+
+		<div class="footer-bar">
+			<div class="footer-buttons" ng-repeat="footer in footers" ng-click="activateFooterButton(footer.index)">{{!footer.name}}</div>
+		</div>
+
+		<div id="spreadsheet-div">
+
+		<div id="workbookControl" style="background-color:#80A9F3;">
+	    </div>
+
+	     <div id="tableeditor"></div> 
+
+
+         <div id="msg" onclick="this.innerHTML='&nbsp;';"></div> 
+
+          <textarea name="savestr" id="sheetdata" style="display:none;">
+	          {{!msc}}
+		  </textarea>
+
+
+
+		</div>
+    <div class="loader-div">
+      <span ng-show="loader.load" class="spin-fix"><i class="fa fa-2x fa-circle-o-notch fa-spin"></i></span>
+    </div>
+ 
+
+
+</script>
+
+
+<script type="text/ng-template" id="emailModal.html">
+        <div class="modal-header">
+            <h3 class="modal-title">Email</h3>
+        </div>
+        <div class="modal-body">
+            <form name="userForm">
+                <div class="mb-3">
+                  <label  for="emailTo">To:</label>
+                  <input type="email" id="emailTo" class="form-control" name="emailTo" placeholder="Enter email" ng-model="user.emailTo" required />
+                   
+                </div>
+                <div class="mb-3" >
+                  <label  for="subject">Subject:</label>
+                  <input type="text" id="subject" class="form-control" name="subject" placeholder="Enter subject" ng-model="user.subject" required />
+                  
+                </div>
+
+                <div class="mb-3" >
+                   <label  for="message">Additioal Message:</label>
+                  <input type="text" id="message" class="form-control" name="Message" placeholder="Enter additonal message"  ng-model="user.message" required />
+                  
+                </div>
+
+                <div ng-bind-html="emailContent">
+                </div>
+
+
+              </form>
+        
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary spin-fix" type="button" ng-click="doSend()">Send
+                &nbsp;<span ng-show="spinner.load"><i class="fa fa-lg fa-circle-o-notch fa-spin"></i></span>
+            </button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+
+
+<script type="text/ng-template" id="exportModal.html">
+        <div class="modal-header">
+            <h3 class="modal-title">Export as CSV</h3>
+        </div>
+        <div class="modal-body">
+            <div>Filename: <input type="text" ng-model="file.name" name="csv-name-div" placeholder="Enter filename here" value="file.name"/></div>
+            <br>
+
+            <button class="btn btn-primary spin-fix" type="button" ng-click="doExport()">Export</button>
+            <span ng-show="showspan">Click on the link below to download the file</span>
+            <br>
+            <div id="results"></div>
+        
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+
+
+
+
+
+  <script type="text/ng-template" id="listFiles.html">
+
+     <div class="header-bar">
+         <div class="back-btn" ng-click="back()"><i class="fa fa-chevron-left"></i></div>
+         <span class="header-label">{{! webAppName }}</span>
+	   </div>
+     <div class="tool-bar">
+       <!--//<div ng-click="uploadToServer()" class="tool-bar-btns spin-fix"><i class="fa fa-upload"></i>&nbsp; Upload to Cloud
+          //&nbsp;<span ng-show="spinner.load"><i class="fa fa-lg fa-circle-o-notch fa-spin"></i></span>
+       //</div>
+       //<div class="tool-bar-btns"><i class="fa fa-dropbox"></i>&nbsp; Save to Dropbox</div>-->
+     </div>
+
+      <div id="list-content" ng-if="display.list">
+
+          <ul class="list-group">
+             <li class="list-group-item" ng-repeat="file in files">
+
+                 <label class="checkbox">
+                   <input type="checkbox" name="filesList" ng-model="file.checked" style="margin-left: 1.5px;">
+                      <span style="padding-left:25px;">{{!file.name}}</span><br>
+                      <span style="color: #337ab7;padding-left:25px;">{{!file.timestamp}}</span>
+
+
+                    <div style="float:right;">
+
+                     <a ng-click="editFile(file.name)"><i class="fa fa-pencil"></i></a>
+                     &nbsp;&nbsp;
+                     <a ng-click="deleteFile(file.name)"><i class="fa fa-trash-o"></i></a>
+
+                    </div>
+                 </label> 
+
+             </li>
+          </ul>
+
+      
+      </div>
+
+       <div id="grid-content" ng-if="!display.list">
+
+       
+
+          <div class="row" ng-repeat="file in files" ng-if="$index % 3 === 0">
+            
+              <div class="col-md-4 col-body" ng-if="$index < files.length">
+                       <b>{{!files[$index].name}}</b>
+                       <br><span style="color: #337ab7;">{{!files[$index].timestamp}}</span>
+
+                       <div style="float:right;">
+
+                             <a ng-click="editFile(iles[$index].name)"><i class="fa fa-pencil"></i></a>
+                             &nbsp;&nbsp;
+                             <a ng-click="deleteFile(files[$index].name)"><i class="fa fa-trash-o"></i></a>
+
+                         </div>
+
+              </div>
+              <div class="col-md-4 col-body" ng-if="$index + 1 < files.length">
+                 
+                       <b>{{!files[$index + 1].name}}</b>
+                       <br><span style="color: #60BCEA;">{{!files[$index].timestamp}}</span>
+
+                       <div style="float:right;">
+
+                             <a ng-click="editFile(files[$index + 1].name)"><i class="fa fa-pencil"></i></a>
+                             &nbsp;&nbsp;
+                             <a ng-click="deleteFile(files[$index + 1].name)"><i class="fa fa-trash-o"></i></a>
+
+                         </div>  
+
+                    
+              </div>
+              <div class="col-md-4 col-body"  ng-if="$index + 2 < files.length">
+                   
+                       <b>{{!files[$index + 2].name}}</b>
+                       <br><span style="color: #60BCEA;">{{!files[$index].timestamp}}</span>
+
+                       <div style="float:right;">
+
+                             <a ng-click="editFile(files[$index + 2].name)"><i class="fa fa-pencil"></i></a>
+                             &nbsp;&nbsp;
+                             <a ng-click="deleteFile(files[$index + 2].name)"><i class="fa fa-trash-o"></i></a>
+
+                         </div>  
+                    
+              </div>
+             
+             
+        </div>
+        </div>
+
+      
+      </div>
+
+  </script>
+
+
+<script type="text/ng-template" id="login.html">
+      <div class="modal-header">
+            <h4 class="modal-title" style="text-align:center">Login</h4>
+        </div>
+        <div class="modal-body">
+            <form name="userForm">
+                <div class="mb-3">
+                  <label  for="email">Email :</label>
+                  <input type="email" id="email" class="form-control" name="email" placeholder="Enter email" ng-model="user.email" required />
+
+                </div>
+                <div class="mb-3" >
+                  <label  for="password">Password :</label>
+                  <input type="password" id="password" class="form-control" name="password" placeholder="Enter password" ng-model="user.password" required />
+
+                </div>
+
+                <div class="register-div">
+                    <div id="register" ng-click="openRegistrationModal()">New User? Register here</div>
+                </div>
+
+                <div class="invalid-password" ng-if="incorrectPassword">
+                {{!errorMessage}}
+                </div>
+
+
+
+              </form>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary spin-fix" type="button" ng-click="login()">Login
+              &nbsp;<span ng-show="spinner.load"><i class="fa fa-lg fa-circle-o-notch fa-spin"></i></span>
+            </button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+</script>
+
+
+<script type="text/ng-template" id="registration.html">
+      <div class="modal-header">
+            <h4 class="modal-title" style="text-align:center">Registration</h4>
+        </div>
+        <div class="modal-body">
+            <form name="userForm">
+                <div class="mb-3">
+                  <label for="email-register">Email :</label>
+                  <input type="email" id="email-register" class="form-control" name="email-register" placeholder="Enter email" ng-model="register.email" required />
+
+                </div>
+                <div class="mb-3" >
+                  <label for="password-register">Password :</label>
+                  <input type="password" id="password-register" class="form-control" name="password-register" placeholder="Enter password" ng-model="register.password" required />
+
+                </div>
+
+                <div class="register-div">
+                    <div ng-click="openLoginModal()">Already a user? Login here</div>
+                </div>
+
+
+
+              </form>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary spin-fix" type="button" ng-click="register()">Register
+               &nbsp;<span ng-show="spinner.load"><i class="fa fa-lg fa-circle-o-notch fa-spin"></i></span>
+            </button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+</script>
+
+
+<script type="text/ng-template" id="listCloudFiles.html">
+
+     <div class="header-bar">
+        <div class="back-btn" ng-click="back()"><i class="fa fa-chevron-left"></i></div>
+        <span class="header-label">{{! webAppName }}</span>
+     </div>
+     <div class="tool-bar">
+       <div ng-click="deleteFromServer()" class="tool-bar-btns spin-fix"><i class="fa fa-trash"></i>&nbsp; Delete from Cloud
+          &nbsp;<span ng-show="spinner.load"><i class="fa fa-lg fa-circle-o-notch fa-spin"></i></span>
+       </div>
+       <div class="tool-bar-btns"><i class="fa fa-dropbox"></i>&nbsp; Save to Dropbox</div>
+     </div>
+
+      <div id="list-content" ng-if="display.list">
+
+          <ul class="list-group">
+             <li class="list-group-item" ng-repeat="file in files">
+
+                 <label class="checkbox">
+                   <input type="checkbox" name="filesList" ng-model="file.checked" style="margin-left: 1.5px;">
+                      <span style="padding-left:25px;">{{!file.name}}</span><br>
+                      <span style="color: #337ab7;padding-left:25px;">{{!file.timestamp}}</span>
+
+
+                    <div style="float:right;">
+
+                     <a ng-click="editFile(file.name)"><i class="fa fa-pencil"></i></a>
+                     &nbsp;&nbsp;
+                     <a ng-click="deleteFile(file.name)"><i class="fa fa-trash-o"></i></a>
+
+                    </div>
+                 </label> 
+
+             </li>
+          </ul>
+
+      
+      </div>
+      <div class="loader-div">
+         <span ng-show="loader.load" class="spin-fix"><i class="fa fa-3x fa-circle-o-notch fa-spin"></i></span>
+      </div>
+</script>
+
+<script type="text/ng-template" id="progressModal.html">
+
+        <div class="modal-header" style="text-align:center;">
+            <h5 class="modal-title">{{!title}}</h5>
+        </div>
+        <div class="modal-body">
+          <div class="spinner-content">
+              <span ng-show="spinner.load" class="spin-fix"><i class="fa fa-3x fa-spinner fa-spin"></i></span><br>
+              <span ng-show="spinner.done"><i class="fa fa-3x fa-check-circle-o success-check"></i></span><br>
+              <span ng-show="spinner.fail"><i class="fa fa-3x fa-ban success-fail"></i></span><br>
+              <span class="spin-substring">{{!substring}}</span><br>
+              
+          </div>
+        </div>
+        <div class="modal-footer">
+             <button class="btn btn-warning" type="button" ng-click="cancel()">Close</button>
+        </div>
+</script>

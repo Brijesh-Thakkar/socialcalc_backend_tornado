@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% module Template("header-head.html") %}	
+
+<body>
+
+{% module Template("header-nav.html") %}	
+
+    <div class="container">
+
+
+       
+
+
+
+        <br>
+        <a href="/web/portal" class="btn btn-default" role="button"><span class="carousel-control-prev-icon"></span>{{ argument['app'] }}</a>
+        <br> <br> <br>
+        <br>
+
+        <ul class="list-group">
+          {% for entry in argument['entries'] %}
+            
+          <li class="list-group-item">  {{ entry.fname}} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+            <div class="btn-group">
+              <button type="button" class="btn btn-primary" onclick="viewFile('{{ entry.fname }}');">Edit</button>
+              <button type="button" class="btn btn-primary" onclick="deleteFile('{{ entry.fname }}','{{ argument['app'] }}');">Delete</button>
+              
+            </div>
+
+
+          </li>
+             {% end %}
+        </ul>
+      
+
+
+
+	
+	 
+	 
+	
+	
+	
+	
+	
+        <hr>
+
+        <!-- Footer -->
+	{% module Template("footer.html") %}
+	
+    </div>
+    <!-- /.container -->
+
+    {% module Template("footer-scripts.html") %}	
+    
+
+</body>
+ <script>
+ function viewFile (filename) {
+   // body...
+   //alert(filename);
+   var link = '/web/runasweb?app={{ argument["app"] }}&file='+filename;   
+   //alert(link);
+   window.open(link,"_self");   
+   
+ }
+ function deleteFile(filename,app){
+ 
+   $.ajax({
+                  type: 'POST',
+                  url: '/web/delete',
+                  data: {'filename':filename ,'appname':app},
+                  success: function(data)
+                  {
+                      //alert(data.result);   
+                      if(data.result == "ok"){
+                        var l = '/web/display?app={{ argument["app"] }}';
+                        window.open(l,"_self");      
+                      }
+                      else{
+                        alert("Unable to delete.Try again")
+                      }
+                  }
+
+   });
+ }
+ </script>
+</html>

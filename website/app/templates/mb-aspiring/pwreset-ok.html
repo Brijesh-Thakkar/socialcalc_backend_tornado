@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% module Template("header-head.html") %}	
+
+<body>
+
+{% module Template("header-nav.html") %}	
+
+    <!-- Page Content -->
+    <div class="container">
+
+         <br><br><br>
+            <center>Reset password for user {{ argument['reguser'] }} successful<br><br>
+
+            	<a href="/web/home/log-in.html" class="btn btn-success" role="button">Login Now</a>
+
+            </center>
+					 
+        <!-- Footer -->
+	{% module Template("footer.html") %}
+	
+    </div>
+    <!-- /.container -->
+
+    {% module Template("footer-scripts.html") %}	
+
+</body>
+
+
+</html>
+

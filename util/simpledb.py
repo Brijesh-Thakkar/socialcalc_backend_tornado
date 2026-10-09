@@ -1,8 +1,8 @@
 import os
 import boto
-import msnparse
+from . import msnparse
 import json
-import xbrlmap
+from . import xbrlmap
 
 from boto.s3.connection import S3Connection
 
@@ -42,7 +42,7 @@ def getStmtKey(ticker, stmttype):
 def getNormalizedTable(data, type):
     retrows = []
     canonlist = xbrlmap.getNormalizedList(type)
-    years = data.keys()
+    years = list(data.keys())
     #print years
     years.sort()
     years.reverse()
@@ -55,7 +55,7 @@ def getNormalizedTable(data, type):
         row.append(item)
 
         #print stmt
-        if stmt.has_key(item):
+        if item in stmt:
             for year in years:
                 #print data[year][item]
                 row.append(data[year][item])
@@ -100,10 +100,10 @@ def loadStmtToSimpleDb(ticker, stmttype):
     try:
         data = msnparse.get_ticker_data(ticker, stmttype, "Ann")
     except:
-        print ticker+"-FAILED"
+        print(ticker+"-FAILED")
         return
     if len(data) < 10:
-        print ticker+"-FAILED"
+        print(ticker+"-FAILED")
         return
     # convert data to per year data
     stmt = convertToPerYear(data)
@@ -114,26 +114,26 @@ def loadStmtToSimpleDb(ticker, stmttype):
         key = getStmtKey(ticker,stmttype)
         s3key = bucket.get_key(key)
         stringval = json.dumps(stmt)
-        print len(stringval)
+        print(len(stringval))
         if s3key == None:
             k = Key(bucket)
             k.key = key
             k.set_contents_from_string(stringval)
         else:
             s3key.set_contents_from_string(stringval)
-        item["years"] = json.dumps(stmt.keys())
+        item["years"] = json.dumps(list(stmt.keys()))
         item.save()
 
 
 def getAllS3Keys():
     keys = bucket.get_all_keys()
-    print keys
+    print(keys)
     #for key in keys:
     #    print key.get_contents_as_string()
 
 def getAllSDBItems():
     for item in tickerdomain:
-        print item.name
+        print(item.name)
     
 def loadTickerToSimpleDb(ticker):
     loadStmtToSimpleDb(ticker, "Income")
@@ -144,7 +144,7 @@ def loadTickersFromFile(fname):
     data = open(fname).read().split("\n")
     count = 1
     for tick in data:
-        print count,tick,"----"
+        print(count,tick,"----")
         if count <= 309:
             count = count + 1
             continue
@@ -152,7 +152,7 @@ def loadTickersFromFile(fname):
             try:
                 loadTickerToSimpleDb(tick)
             except:
-                print "exception "+tick
+                print("exception "+tick)
         count = count + 1
 
 

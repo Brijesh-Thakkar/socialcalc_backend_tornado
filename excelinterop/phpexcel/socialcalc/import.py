@@ -1,8 +1,8 @@
-import commands
+import subprocess
 import sys
 import json
 
-wbookenc = commands.getoutput("php import.php %s"%sys.argv[1])
+wbookenc = subprocess.getoutput("php import.php %s"%sys.argv[1])
 
 
 

@@ -49,7 +49,7 @@ def command_link(args):
     sys.stdout.write("1. Go to: %s\n" % url)
     sys.stdout.write("2. Authorize this app.\n")
     sys.stdout.write("After you're done, press ENTER.\n")
-    raw_input()
+    input()
 
     # This will fail if the user didn't visit the above URL and hit 'Allow'
     access_token = sess.obtain_access_token(request_token)
@@ -72,7 +72,7 @@ def command_list(args):
         exit(1)
 
     state = load_state()
-    for e in state.keys():
+    for e in list(state.keys()):
         sys.stdout.write("%s is uid %s\n" % (state[e]['display_name'], e))
 
 def command_copy(args):
@@ -82,7 +82,7 @@ def command_copy(args):
 
     state = load_state()
 
-    if len(state.keys()) < 2:
+    if len(list(state.keys())) < 2:
         sys.stderr.write("ERROR: You can't use the copy command until at least two users have linked")
         exit(1)
 

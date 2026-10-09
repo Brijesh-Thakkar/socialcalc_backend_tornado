@@ -1,0 +1,265 @@
+.alert{
+  z-index: 1000;
+  position: absolute;
+  top: 0px;
+  margin-top: 30px;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  width: 400px;
+}
+
+.header-bar{
+	background-color: #f1f1f1;
+	padding: 20px;
+	font-family:"Palatino Linotype", "Book Antiqua", Palatino, serif;
+	font-size: 110%;
+}
+.header-label{
+	font-weight: bold;
+  cursor: pointer;
+}
+ul
+{
+    list-style-type: none;
+}
+.content-ul{
+	margin:0px;
+	padding: 0px;
+}
+.content-li{
+	display: inline-block;
+	padding: 40px 30px;
+    vertical-align: middle;
+    text-align: center;
+    vertical-align: top;
+    position: relative;
+    border-width: 1px;
+    border-style: solid #000000;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.05);
+    box-shadow: inset 0 1px 1px rgba(37, 33, 33, 0.06);
+    width: 25%;
+
+}
+.content-inner{
+	padding: 10px 0px;
+}
+.content-inner:hover{
+  cursor: pointer;
+}
+.content-img{
+	width: 100px;
+	height: 100px;
+	border-radius: 20px;
+	-webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.05);
+    box-shadow: inset 0 1px 1px rgba(37, 33, 33, 0.06);
+
+}
+.content-a{
+	z-index:100;
+	padding-top: 10px;
+}
+
+.content-a:hover{
+	text-decoration: none;
+}
+
+#spreadsheet-div{
+	margin-top: -40px;
+}
+
+.footer-bar{
+	font-family:"Palatino Linotype", "Book Antiqua", Palatino, serif;
+  border-bottom: solid 1px #F1F1F1;
+	/*font-size: 110%;*/
+}
+.options-bar{
+	float: right;
+	font-family:"Palatino Linotype", "Book Antiqua", Palatino, serif;
+	font-size: 110%;
+	margin-top: -45px;
+	margin-right: 40px;
+	font-weight: bold;
+}
+.cloud-options-bar{
+  float: right;
+  font-family:"Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: 110%;
+  margin-top: -45px;
+  margin-right: 150px;
+  font-weight: bold;
+}
+
+.footer-buttons{
+	border-radius: 1px;
+	width: auto;
+	display: inline-block;
+	border: 1px solid #dddddd;
+	padding: 10px;
+	border-width: 1px;
+    border-style: solid #000000;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.05);
+    box-shadow: inset 0 1px 1px rgba(37, 33, 33, 0.06);
+}
+
+.btn-css{
+  
+  background: #dddddd;
+
+}
+
+
+div#main{
+
+  background: white;
+
+}
+
+#list-content{
+  margin: 20px;
+}
+ 
+
+ #grid-content{
+  
+    padding-right: 20px;
+    padding-left: 20px;
+    margin: 20px;
+ }
+ .col-body{
+ 	border:1px solid #ddd;
+ 	position: relative;
+    display: block;
+    padding: 15px 20px;
+    margin-bottom: -1px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+     
+
+ }
+
+ .pagination-bar{
+ 	position: fixed;
+    margin: auto;
+    bottom: 0;
+ }
+
+ .login-btn{
+
+   float: right;
+   border: solid 1px #ddd;
+   padding-top: 5px;
+   padding-bottom: 5px;
+   padding-right: 9px;
+   padding-left: 9px;
+   border-radius:5px;
+   -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.05);
+   box-shadow: inset 0 1px 1px rgba(37, 33, 33, 0.06);
+   background: white;
+   margin-right: 40px;
+ }
+
+@media only screen and (max-width:767px) {
+
+        #content {
+            /*overflow: auto;
+            white-space: nowrap;
+            height: 100%;*/
+        }
+
+
+}
+.register-div{
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+  color: #006400;
+}
+
+.tool-bar{
+  width: 100%;
+  margin: 20px 20px 0px 20px;
+}
+
+.tool-bar-btns{
+  display: inline-block;
+  color: #337ab7;
+  cursor: pointer;
+  padding: 3px 10px 3px 10px;
+  border: solid 1px #337ab7;
+  border-radius: 2px;
+}
+.login-logout{
+  width: 90px !important;
+  padding: 5px;
+  font-weight: bold;
+  font-family:"Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: 110%;
+  border: solid 1px;
+  border-radius: 3px;
+  margin-top: 5px;
+}
+.login-logout:hover{
+  color:#387ef5;
+  border: solid 1px #387ef5;
+  cursor: pointer;
+}
+
+.checkbox{
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+}
+.editing-label{
+  display: block;
+  margin: 0 auto;
+  text-align: center;
+  margin-top: -20px;
+}
+
+.back-btn{
+  padding-left: 5px;
+  padding-right: 5px;
+  display: inline-block;
+}
+
+.save-progress-bar{
+  z-index: 1;
+  position:absolute;
+  bottom:0;
+  width:100%;
+  height:50px;   /* Height of the footer */
+  background-color: #5cb85c;
+}
+.progress-bar-success {
+    border-bottom: solid 1px !important;
+}
+.spin-fix .fa-spin {
+    -webkit-transform-origin: 50% calc(50% - .5px);
+    transform-origin: 50% calc(50% - .5px);
+}
+.spinner-content{
+  text-align: center;
+  display: block;
+}
+.spinner-content .spin-substring{
+  font-size: 80%;
+}
+.spinner-content .success-check{
+  color: #4AD04A;
+  font-size: 5em;
+}
+.spinner-content .success-fail{
+  color: red;
+  font-size: 5em;
+}
+.loader-div{
+  text-align: center;
+  color: #337ab7;
+  margin-top: 40px;
+}
+.invalid-password{
+  text-align: center;
+  padding: 10px;
+  border-radius: 3px;
+  background: #F36969;
+  color: white;
+}

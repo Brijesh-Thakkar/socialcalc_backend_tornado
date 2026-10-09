@@ -3,15 +3,15 @@ A simple JSON REST request abstraction layer that is used by the
 dropbox.client and dropbox.session modules. You shouldn't need to use this.
 """
 
-import httplib
+import http.client
 import os
 import pkg_resources
 import re
 import socket
 import ssl
 import sys
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 from . import util
 
 try:
@@ -23,7 +23,7 @@ SDK_VERSION = "1.5.1"
 
 TRUSTED_CERT_FILE = pkg_resources.resource_filename(__name__, 'trusted-certs.crt')
 
-class ProperHTTPSConnection(httplib.HTTPConnection):
+class ProperHTTPSConnection(http.client.HTTPConnection):
     """
     httplib.HTTPSConnection is broken because it doesn't do server certificate
     validation.  This class does certificate validation by ensuring:
@@ -34,7 +34,7 @@ class ProperHTTPSConnection(httplib.HTTPConnection):
     """
 
     def __init__(self, host, port, trusted_cert_file=TRUSTED_CERT_FILE):
-        httplib.HTTPConnection.__init__(self, host, port)
+        http.client.HTTPConnection.__init__(self, host, port)
         self.ca_certs = trusted_cert_file
         self.cert_reqs = ssl.CERT_REQUIRED
 
@@ -107,7 +107,7 @@ def create_connection(address):
             sock.connect(sa)
             return sock
 
-        except socket.error, _:
+        except socket.error as _:
             err = _
             if sock is not None:
                 sock.close()
@@ -134,7 +134,7 @@ class RESTClientObject(object):
         if post_params:
             if body:
                 raise ValueError("body parameter cannot be used with post_params parameter")
-            body = urllib.urlencode(post_params)
+            body = urllib.parse.urlencode(post_params)
             headers["Content-type"] = "application/x-www-form-urlencoded"
 
         # maintain dynamic lookup of ProperHTTPConnection
@@ -142,7 +142,7 @@ class RESTClientObject(object):
         if http_connect is None:
             http_connect = ProperHTTPSConnection
 
-        host = urlparse.urlparse(url).hostname
+        host = urllib.parse.urlparse(url).hostname
         conn = http_connect(host, 443)
 
         try:
@@ -173,9 +173,9 @@ class RESTClientObject(object):
                     if bytes_read != clen:
                         raise util.AnalyzeFileObjBug(clen, bytes_read)
 
-        except socket.error, e:
+        except socket.error as e:
             raise RESTSocketError(host, e)
-        except CertificateError, e:
+        except CertificateError as e:
             raise RESTSocketError(host, "SSL certificate error: " + e)
 
         r = conn.getresponse()

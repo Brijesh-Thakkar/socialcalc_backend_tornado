@@ -29,8 +29,8 @@ header.carousel {
     height: 50%;
 }
 
-header.carousel .item,
-header.carousel .item.active,
+header.carousel .carousel-item,
+header.carousel .carousel-item.active,
 header.carousel .carousel-inner {
     height: 100%;
 }
@@ -90,4 +90,30 @@ footer {
     header.carousel .carousel {
         height: 70%;
     }
+}
+/* Bootstrap 5 compatibility: page-header (removed in BS4+) */
+.page-header {
+    padding-bottom: 9px;
+    margin: 40px 0 20px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Bootstrap 3 compatibility: btn-default (white button with gray border) */
+.btn-default {
+    color: #333;
+    background-color: #fff;
+    border-color: #ccc;
+}
+.btn-default:hover,
+.btn-default:focus,
+.btn-default:active {
+    color: #333;
+    background-color: #e6e6e6;
+    border-color: #adadad;
+}
+
+/* Bootstrap 3 compatibility: btn-block (full-width button) */
+.btn-block {
+    display: block;
+    width: 100%;
 }

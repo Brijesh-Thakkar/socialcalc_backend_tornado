@@ -11,7 +11,7 @@
     <hr class="space">
 <h2><a href="/">Aspiring Investments</a></h2>
 
-      {% if argument.has_key('user') %}
+      {% if 'user' in argument %}
       user: {{ argument['user'] }} <a href="/logout">logout</a>
 
       {% end %}

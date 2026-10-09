@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Aspiring Investments
 #
 # 
 #
-import commands
+import subprocess
 import logging
 import os.path
 import re

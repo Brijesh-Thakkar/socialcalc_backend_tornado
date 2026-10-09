@@ -1,0 +1,434 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+
+    
+	<!-- Change this if you want to allow scaling -->
+   <!-- <meta name="viewport" content="width=default-width, user-scalable=no" />-->
+	<meta name="viewport" content="width=default-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width, height=device-height, target-densitydpi=medium-dpi" />
+
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+    <title>{{ entry["fname"] }}</title>
+
+
+<link rel="stylesheet"  href="{{ static_url("static/runappios43c/lib/jquery/_assets/css/jqm-docs.css") }}"/> 
+<link rel="stylesheet"  href="{{ static_url("static/runappios43c/lib/jquery/jquery.mobile.css") }}" /> 
+<link rel="stylesheet"  href="{{ static_url("static/runappios43c/css/style.css") }}" /> 
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/jquery/jquery.min.js") }}"></script>
+
+
+<!-- App specific javascript headers -->
+{{ entry["appstylefiles"] }}
+
+    <script type="text/javascript" charset="utf-8">
+
+      var selectedFile = "default";
+      var initialSelectedSheetId = "sheet1";
+        
+      var childbrowser;
+
+ 
+
+      function BlockMove(event) {
+          // event.preventDefault();
+      }
+
+    	function onBodyLoad()
+    	{
+              document.addEventListener("deviceready",onDeviceReady,false);
+    	 
+     }
+
+    	var isMobile = {
+    	Android: function() {
+            return navigator.userAgent.match(/Android/i);
+    	},
+    	BlackBerry: function() {
+            return navigator.userAgent.match(/BlackBerry/i);
+    	},
+    	iOS: function() {
+            return navigator.userAgent.match(/iPhone|iPad|iPod/i);
+    	},
+    	Opera: function() {
+            return navigator.userAgent.match(/Opera Mini/i);
+    	},
+    	Windows: function() {
+            return navigator.userAgent.match(/IEMobile/i);
+    	},
+    	any: function() {
+            return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
+    	}
+    	};
+
+    	if (!(isMobile.any())) {
+
+
+    	$("#printDialogButton").show()
+
+
+    	}
+
+        if (selectedFile != "default") {
+          updateFileName(selectedFile);
+          var initialSelectedSheetButton = getSheetIndexFromId(initialSelectedSheetId)
+          console.log("initial button is: "+initialSelectedSheetButton)
+          activateFooterBtn(initialSelectedSheetButton)
+        }
+
+
+	
+
+	/* When this function is called, PhoneGap has been initialized and is ready to roll */
+	function onDeviceReady()
+	{
+
+
+              
+	}
+
+  
+
+   </script>
+
+
+
+<!-- The following are the core app -->
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/socialcalcconstants.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/socialcalc-3.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/aspiringt.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/socialcalctableeditor.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/formatnumber2.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/formula1.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/socialcalcpopup.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/socialcalcspreadsheetcontrol.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/aspiringwb.js") }}"></script>
+<!--<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/aspiringwbc.js") }}"></script>-->
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/socialcalcworkbookcontrol.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/json2.js") }}"></script>
+
+
+<!-- The following are jquery -->
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/jquery/jquery.mobile.js") }}"></script>
+
+<!-- The following is called after highcharts is loaded -->
+<script type="text/javascript" src="{{ static_url("static/runappios43c/AppGeneral_amazon.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/aspiring/autosave.js") }}"></script>
+
+<!--Dropbox Plugin-->
+<script type="text/javascript" src="{{ static_url("static/runappios43c/lib/dropbox/dropboxHandler_amazon.js") }}"></script>
+
+<!--S3 -->
+<script type="text/javascript" src="{{ static_url("static/runappios43c/cloudStorage_amazon.js") }}"></script>
+        
+<!-- App specific javascript headers -->
+{{ entry["appjsfiles"] }}
+
+
+
+
+</head>
+  <body onload="onBodyLoad()">
+ 
+
+<div data-role="page" class="type-index" id="indexPage" data-fullscreen="true"  data-theme="d">
+  
+<div data-role="header" data-theme="a" data-position="fixed" class="ui-bar">
+  
+<div class="ui-grid-solo">
+   
+  <div data-role="controlgroup" data-inline="true" data-type="horizontal" class="header-btn">
+
+    <div data-role="button" data-inline="true" onclick='window.open("/web/portal","_self");' data-icon="home"><h1>Home<h1></div>
+    <div data-role="button"  data-inline="true" onclick="window.history.back();" data-icon="back"><h1>Back<h1></div>
+    <div data-role="button" id="back-btn" style="display:none;" data-inline="true" onclick='changePage("#landing-page");'><h1>Menu<h1></div>
+    <a href="{{ static_url("static/runappios43c/email.html") }}" data-role="button" data-inline="true" data-rel="dialog"><h1>Email</h1></a>
+    <div id="printDialogButton" data-role="button" data-inline="true" onclick="showPrintDialog();"><h1>Print</h1></div>
+    <div id="importSignatureButton" style="display:none;" data-role="button" data-inline="true" onclick="importSignature(1);"><h1>Import Signature</h1></div> 
+    <div data-role="button" data-inline="true" style="display:none;" onclick="importStart(1);" id="import-client"><h1>Import Client</h1></div>
+    <div data-role="button" data-inline="true" style="display:none;" onclick="importStart(2);" id="import-product"><h1>Import Products</h1></div> 
+    <div data-role="button" data-inline="true" style="display:none;" onclick="saveCheckbook(1);" id="save-account"><h1>Save</h1></div> 
+    <a href="{{ static_url("static/runappios43c/file.html") }}" id="file-btn" data-role="button" data-inline="true"><h1>File</h1></a>
+    
+    
+  </div>
+
+  <span id="indexPage-fname" style="float: right;margin-right: 50px;margin-top: -25px;">Editing: default</span>
+   <img style="position: absolute; right: 10px; top: 0.8em" src="{{ static_url("static/runappios43c/lib/aspiring/images/sc-logo.gif") }}"></img>
+   
+  
+   
+
+</div> <!-- ui-grid-b -->
+
+</div> <!-- header -->
+
+ 
+  <div id="workbookControl" style="background-color:#80A9F3;">
+    </div>
+
+     <div id="tableeditor">editor goes here</div> 
+
+
+   <div id="msg" onclick="this.innerHTML='&nbsp;';"></div> 
+
+
+    
+<textarea name="savestr" id="sheetdata" style="display:none;">
+{{ entry["sheetstr"] }}
+</textarea>
+
+
+<script type="text/javascript">
+
+  var landingPage = "{{ entry["landing"] }}";
+  if(landingPage == "yes"){
+     $('body').append('<div id="landing-page" data-role="page"><div class="header">{{ entry["fname"] }}</div><!-- /header --><div id="content-page"><div class="group-buttons" id="landing-buttons" style="margin-top: 60px;"></div><!-- /content --></div><!-- /page -->');
+    window.location.hash = 'landing-page';
+    }
+
+    $('#landing-page').live('pageshow', function(event) {
+      console.log('landing-page');
+
+      var buttons = "{{ entry["buttons"] }}";
+      
+      //buttons = JSON.stringify(buttons);
+      //console.log(buttons);
+      var arr=[];
+      var match = ["u","[","]","'","'"];
+      var str = buttons.split(",");
+      for( i in str){
+         for(var j=0;j<match.length;j++){
+          var ind = str[i].indexOf(match[j]);
+          str[i] = str[i].replace(match[j],'');
+         }
+        arr.push(str[i]);
+      }
+      
+      landingPageRefresh(arr , "{{ entry["fname"] }}");
+    });
+
+  </script>
+
+
+<script>
+
+   if (!Aspiring) {
+   var Aspiring = {};
+   }
+   Aspiring.appname = "{{ entry["fname"] }}";
+
+if(Aspiring.appname == "Invoice Suite"){
+  document.getElementById('import-client').style.display='';
+  document.getElementById('import-product').style.display='';
+  document.getElementById('back-btn').style.display='';
+  document.getElementById('importSignatureButton').style.display='';
+}
+else if(Aspiring.appname == "Sales Receipt"){
+      document.getElementById('importSignatureButton').style.display='';
+}
+else if(Aspiring.appname == "Accounts Assistant"){
+  document.getElementById('back-btn').style.display='';
+  document.getElementById('save-account').style.display = '';
+}
+else if(Aspiring.appname == "Invoice Phone"){
+  document.getElementById('import-client').style.display='';
+  document.getElementById('import-product').style.display='';
+   
+  document.getElementById('importSignatureButton').style.display='';
+}
+   
+SocialCalc.ToggleInputLineButtons = function(show) {
+   var bele = document.getElementById("testtest");
+   if (!bele) return;
+   if (show) {
+      bele.style.display = "inline";
+   } else {
+     bele.style.display = "none";
+   } 
+}
+SocialCalc.InputLineClearText = function() {
+   spreadsheet.editor.inputBox.SetText("");
+}
+
+  jQuery.postJSON = function(url, args, callback) {
+  //args._xsrf = getCookie("_xsrf");
+  //console.log(args)
+  var test = $.param(args)
+  //console.log(test)
+  
+  $.ajax({url: url, data: $.param(args), dataType: "text", type: "POST",
+  success: function(response) {
+  if (callback) callback(eval("(" + response + ")"));
+  }, error: function(response) {
+  console.log("ERROR:", response)
+  }});
+  };
+
+  SocialCalc.Callbacks.broadcast = function(type, data) {
+
+  }
+
+  SocialCalc.Constants.defaultImagePrefix = "{{ static_url("static/runappios43c/lib/aspiring/images/sc-") }}";
+  SocialCalc.Constants.defaultGridCSS = "";
+  SocialCalc.Constants.SCNoColNames = true;
+  SocialCalc.Constants.SCNoRowName = true;
+  SocialCalc.Constants.defaultRownameStyle = "";
+  SocialCalc.Constants.defaultSelectedRownameStyle = "";
+  SocialCalc.Popup.imagePrefix = "{{ static_url("static/runappios43c/lib/aspiring/images/sc-") }}";
+
+
+  var spreadsheet = new SocialCalc.SpreadsheetControl();
+
+
+
+var workbook = new SocialCalc.WorkBook(spreadsheet);
+workbook.InitializeWorkBook("sheet1");
+        
+
+spreadsheet.InitializeSpreadsheetControl("tableeditor");
+spreadsheet.ExecuteCommand('redisplay', '');
+
+
+var workbookcontrol = new SocialCalc.WorkBookControl(workbook,"workbookControl","sheet1");
+workbookcontrol.InitializeWorkBookControl();
+    
+
+SocialCalc.WorkBookControlLoad(document.getElementById("sheetdata").value)
+
+spreadsheet.DoOnResize();
+
+var selectedFile = "default"
+
+initialSelectedSheetId = "sheet1"
+var initialFileLoadData = null;
+
+
+if (getLastEditedFileName()) {
+   selectedFile = getLastEditedFileName();
+   console.log("lastedited="+selectedFile)
+   initialFileLoadData = getLastEditedFileData();
+
+   if (initialFileLoadData) {
+     try {
+       var initialmscfile = JSON.parse(initialFileLoadData)
+       initialSelectedSheetId = initialmscfile["currentid"]
+       console.log("initbtn="+initialSelectedSheetId)
+     } catch (e) {
+
+     }
+     SocialCalc.WorkBookControlLoad(initialFileLoadData)
+   } else {
+     selectedFile = "default"
+     SocialCalc.WorkBookControlLoad(document.getElementById("sheetdata").value);
+   }
+} else {
+   SocialCalc.WorkBookControlLoad(document.getElementById("sheetdata").value);
+   
+}
+
+
+				 
+
+</script>
+
+    <div data-role="footer" class="ui-bar" data-theme="a"  data-position="fixed" data-id: "myfooter">
+        <table align="center"> <tr><td>
+            </div></td><td>&nbsp;&nbsp;</td><td>
+                <div data-role="controlgroup" data-type="horizontal">
+
+		  <div id="footerbtn1" data-role="button" class="ui-btn-active" onclick="activateFooterBtn(1)"><H1>{{ entry["sheets"][0] }}</H1></div>
+
+		  {% for sheet in range(1,len(entry["sheets"])) %}
+		    {% block sheet %}
+		  <div id="footerbtn{{ sheet+1 }}" data-role="button" onclick="activateFooterBtn( {{ sheet+1 }} )"><H1>{{ entry["sheets"][sheet] }}</H1></div>
+		    {% end %}
+		  {% end %}
+               </div>
+
+		</td><td>&nbsp;&nbsp;</td><td>
+                    <div>
+                        </td></tr>
+    </table>   </div> <!-- footer -->
+
+</div> <!-- page -->
+<dialog id="signature">
+
+ <input type="file" id="fileUpload" name ="fileUpload"> 
+ <input type="submit" value = "Import" id="import-signature">
+  <div id="fileDisplayArea"></div>
+
+
+</dialog>
+ 
+</body>
+<script>
+  function handleFileSelect(evt) {
+    var files = evt.target.files; // FileList object
+    // files is a FileList of File objects. List some properties.
+    var f = files[0];
+    var imageType = /image.*/;
+    var fileDisplayArea = document.getElementById('fileDisplayArea');
+    var src;
+
+      $('#fileDisplayArea').empty();
+
+      if (f.type.match(imageType)) {
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+
+          var img = new Image();
+          img.src = reader.result;
+          src = img.src;
+           
+          fileDisplayArea.appendChild(img);
+        }
+
+
+        reader.readAsDataURL(f); 
+      }
+
+    ////alert(escape(f.name));
+    var name = escape(f.name);
+    document.getElementById('import-signature').addEventListener('click', function() {
+
+      var bool = uploadcheck();
+
+
+      if(bool){
+        startImportSign(name,src,clicked);
+
+      }
+        
+
+
+       
+    });
+
+    
+
+     
+     
+  }
+
+  function uploadcheck(){
+  
+    var file = document.getElementById('fileUpload').value;
+
+    if(file == "")
+     { alert("You must select a file to upload");
+       return false;
+     }
+
+    return true;
+  }
+  
+
+  document.getElementById('fileUpload').addEventListener('change', handleFileSelect, false);
+</script>
+
+</body>
+ 
+ 
+</html>

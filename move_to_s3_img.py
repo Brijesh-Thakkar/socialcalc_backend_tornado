@@ -31,19 +31,19 @@ def move_files_to_s3():
         else:
             count = count+1
             continue
-        print fname, fnameid, count,len(files), os.path.getsize(fname), bucket
+        print(fname, fnameid, count,len(files), os.path.getsize(fname), bucket)
         if not cloud.storage.storage.existsItem(fnameid, img_bucket):
-            print "moving"
+            print("moving")
             move_to_s3(fname, fnameid, bucket)
             time.sleep(1)
             count = count + 1
         else:
-            print "exists, breaking"
+            print("exists, breaking")
             # break
             continue
 
 def usage():
-    print "usage: move_to_s3_img imgfiles"
+    print("usage: move_to_s3_img imgfiles")
     exit()
 
 if __name__ == "__main__":

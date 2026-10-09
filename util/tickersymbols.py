@@ -20,7 +20,7 @@ def refreshTickers(fname):
     f.close()
 
 tickers = {}
-print "loading tickers..."
+print("loading tickers...")
 data = open("./util/nasdaq.txt").read()
 datalist = data.split("\n")
 #print len(datalist)
@@ -50,8 +50,8 @@ if __name__ == "__main__":
     #f = open("symbols.txt","w")
     #f.write(data)
     #f.close()
-    print isValidTicker(sys.argv[1])
-    print isValidTicker(sys.argv[2])
+    print(isValidTicker(sys.argv[1]))
+    print(isValidTicker(sys.argv[2]))
 
 
 

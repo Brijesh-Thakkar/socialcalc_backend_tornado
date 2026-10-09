@@ -10,7 +10,7 @@
 #  version 2.1 of the License, or (at your option) any later version.
 
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 
 """
@@ -27,7 +27,7 @@ sample usage:
 
 def __request(symbol, stat):
     url = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (symbol, stat)
-    return urllib.urlopen(url).read().strip().strip('"')
+    return urllib.request.urlopen(url).read().strip().strip('"')
 
 
 def get_all(symbol):
@@ -158,6 +158,6 @@ def get_historical_prices(symbol, start_date, end_date):
           'b=%s&' % str(int(start_date[6:8])) + \
           'c=%s&' % str(int(start_date[0:4])) + \
           'ignore=.csv'
-    days = urllib.urlopen(url).readlines()
+    days = urllib.request.urlopen(url).readlines()
     data = [day[:-2].split(',') for day in days]
     return data

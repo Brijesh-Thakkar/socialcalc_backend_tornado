@@ -8,7 +8,7 @@
 import tornado.options
 import tornado.httpserver
 import tornado.ioloop
-import controllers.main
+from . import controllers.main
 
 def main():
     tornado.options.parse_command_line()
