@@ -209,6 +209,10 @@ services:
   node-interop:
     build:
       context: ${NODE_INTEROP_CONTEXT:-../touch-calc-nodejs-backend-libp2p-storacha}
+      args:
+        # The sidecar only serves /v1/*, /health and save/open; Chromium is only needed for the
+        # Node app's own POST /htmltopdf. Skipping it keeps the image ~870 MB instead of 1.66 GB.
+        PUPPETEER_SKIP_DOWNLOAD: "true"
     expose:
       - "5055"
     environment:
