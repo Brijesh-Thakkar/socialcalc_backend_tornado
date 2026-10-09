@@ -15,24 +15,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # The fastapi-interop sidecar source (docker-compose.yml: FASTAPI_INTEROP_CONTEXT) lives in a
-      # private repo, so the checkout needs FASTAPI_REPO_TOKEN (fine-grained PAT, Contents: read on
-      # seetadev/touch-calc-fastapi-backend-libp2p-testing). Without it the E2E job is skipped
-      # with a warning instead of failing on "Repository not found".
-      - name: Check for FASTAPI_REPO_TOKEN
+      # The fastapi-interop sidecar source (docker-compose.yml: FASTAPI_INTEROP_CONTEXT) lives in the
+      # private repo seetadev/touch-calc-fastapi-backend-libp2p-testing, so the checkout needs the
+      # FASTAPI_REPO_TOKEN secret (PAT with read access to it).
+      # - pushes and same-repo PRs: the token is required; without it the job fails.
+      # - fork PRs (GitHub does not pass secrets to them): the stack runs without the sidecar
+      #   (.github/ci/compose.no-fastapi-interop.yml) and only interop-fastapi.spec.ts is left out.
+      - name: Decide whether the fastapi-interop sidecar can be built
         id: fastapi
         env:
           FASTAPI_REPO_TOKEN: ${{ secrets.FASTAPI_REPO_TOKEN }}
+          IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           if [ -n "$FASTAPI_REPO_TOKEN" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+          elif [ "$IS_FORK_PR" = "true" ]; then
+            echo "mode=no-interop" >> "$GITHUB_OUTPUT"
+            echo "COMPOSE_FILE=docker-compose.yml:.github/ci/compose.no-fastapi-interop.yml" >> "$GITHUB_ENV"
+            echo "::warning title=fastapi-interop not tested::Fork PR without FASTAPI_REPO_TOKEN: the fastapi-interop sidecar and tests/e2e/interop-fastapi.spec.ts are skipped; all other E2E tests run."
           else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=E2E skipped::FASTAPI_REPO_TOKEN secret is not set, so the private repo seetadev/touch-calc-fastapi-backend-libp2p-testing cannot be checked out and the E2E tests did not run."
+            echo "::error title=FASTAPI_REPO_TOKEN missing::The FASTAPI_REPO_TOKEN Actions secret is not set. It is required to check out the private repo seetadev/touch-calc-fastapi-backend-libp2p-testing (fastapi-interop sidecar) for pushes and same-repo PRs."
+            exit 1
           fi
 
       - name: Checkout fastapi-interop sidecar source
-        if: steps.fastapi.outputs.available == 'true'
+        if: steps.fastapi.outputs.mode == 'full'
         uses: actions/checkout@v4
         with:
           repository: seetadev/touch-calc-fastapi-backend-libp2p-testing
@@ -41,16 +48,16 @@ jobs:
           path: fastapi-interop-src
 
       - name: Set up Docker Buildx
-        if: steps.fastapi.outputs.available == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and start Docker Compose stack
-        if: steps.fastapi.outputs.available == 'true'
         run: |
           cp .env.example .env
           # Override with CI-safe values
           sed -i 's/generate_a_random_secret_here/ci-test-cookie-secret-not-real/g' .env
-          echo "FASTAPI_INTEROP_CONTEXT=./fastapi-interop-src" >> .env
+          if [ "${{ steps.fastapi.outputs.mode }}" = "full" ]; then
+            echo "FASTAPI_INTEROP_CONTEXT=./fastapi-interop-src" >> .env
+          fi
           # short sidecar timeouts so the 504 test does not wait for the 60 s / 120 s defaults
           sed -i 's/^INTEROP_IMPORT_TIMEOUT=.*/INTEROP_IMPORT_TIMEOUT=8/; s/^INTEROP_EXPORT_TIMEOUT=.*/INTEROP_EXPORT_TIMEOUT=8/' .env
           cp meshkit-service/.env.example meshkit-service/.env
@@ -65,7 +72,6 @@ jobs:
           COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Wait for application to be healthy
-        if: steps.fastapi.outputs.available == 'true'
         run: |
           echo "Waiting for nginx to be ready..."
           for i in $(seq 1 30); do
@@ -81,39 +87,45 @@ jobs:
           exit 1
 
       - name: Set up Node.js
-        if: steps.fastapi.outputs.available == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
-        if: steps.fastapi.outputs.available == 'true'
         run: npm ci
 
       - name: Install Playwright browsers
-        if: steps.fastapi.outputs.available == 'true'
         run: npx playwright install chromium --with-deps
 
       - name: Run Playwright tests
-        if: steps.fastapi.outputs.available == 'true'
-        run: npx playwright test --reporter=list,html
+        run: |
+          if [ "${{ steps.fastapi.outputs.mode }}" = "full" ]; then
+            npx playwright test --reporter=list,html
+          else
+            # every spec except interop-fastapi.spec.ts (needs the sidecar)
+            specs=()
+            for f in tests/e2e/*.spec.ts; do
+              [ "$f" = tests/e2e/interop-fastapi.spec.ts ] || specs+=("$f")
+            done
+            npx playwright test --reporter=list,html "${specs[@]}"
+          fi
         env:
           BASE_URL: http://localhost:8080
           CI: true
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
-        if: always() && steps.fastapi.outputs.available == 'true'
+        if: always() && steps.fastapi.outcome == 'success'
         with:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
 
       - name: Show Docker Compose logs on failure
-        if: failure() && steps.fastapi.outputs.available == 'true'
+        if: failure() && steps.fastapi.outcome == 'success'
         run: docker compose logs
 
       - name: Stop Docker Compose
-        if: always() && steps.fastapi.outputs.available == 'true'
+        if: always() && steps.fastapi.outcome == 'success'
         run: docker compose down

@@ -1,0 +1,26 @@
+# CI override for fork PRs only (secrets, including FASTAPI_REPO_TOKEN, are not passed to them):
+# the fastapi-interop sidecar source lives in a private repo and cannot be built, so the stack
+# runs without it. Same-repo PRs and pushes always run the full stack (see e2e.yml).
+services:
+  fastapi-interop:
+    profiles: ["fastapi-interop"]
+  app1:
+    depends_on: !override
+      memcache:
+        condition: service_started
+      createbuckets:
+        condition: service_completed_successfully
+      meshkit-sidecar:
+        condition: service_started
+      meshkit-sidecar-kubo:
+        condition: service_started
+  app2:
+    depends_on: !override
+      memcache:
+        condition: service_started
+      createbuckets:
+        condition: service_completed_successfully
+      meshkit-sidecar:
+        condition: service_started
+      meshkit-sidecar-kubo:
+        condition: service_started
