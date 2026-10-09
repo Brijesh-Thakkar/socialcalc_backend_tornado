@@ -52,6 +52,37 @@ jobs:
           token: ${{ secrets.FASTAPI_REPO_TOKEN }}
           path: fastapi-interop-src
 
+      # Same for the node-interop sidecar (docker-compose.yml: NODE_INTEROP_CONTEXT), from the private
+      # repo seetadev/touch-calc-nodejs-backend-libp2p-storacha. FASTAPI_REPO_TOKEN (repo-scope PAT)
+      # reads that repo too. Fork PRs add .github/ci/compose.no-node-interop.yml and leave out
+      # interop-node.spec.ts.
+      - name: Decide whether the node-interop sidecar can be built
+        id: node
+        env:
+          FASTAPI_REPO_TOKEN: ${{ secrets.FASTAPI_REPO_TOKEN }}
+          IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          if [ -n "$FASTAPI_REPO_TOKEN" ]; then
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+          elif [ "$IS_FORK_PR" = "true" ]; then
+            echo "mode=no-interop" >> "$GITHUB_OUTPUT"
+            echo "COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.yml}:.github/ci/compose.no-node-interop.yml" >> "$GITHUB_ENV"
+            echo "::warning title=node-interop not tested::Fork PR without FASTAPI_REPO_TOKEN: the node-interop sidecar and tests/e2e/interop-node.spec.ts are skipped; all other E2E tests run."
+          else
+            echo "::error title=FASTAPI_REPO_TOKEN missing::The FASTAPI_REPO_TOKEN Actions secret is not set. It is required to check out the private repo seetadev/touch-calc-nodejs-backend-libp2p-storacha (node-interop sidecar) for pushes and same-repo PRs."
+            exit 1
+          fi
+
+      - name: Checkout node-interop sidecar source
+        if: steps.node.outputs.mode == 'full'
+        uses: actions/checkout@v4
+        with:
+          repository: seetadev/touch-calc-nodejs-backend-libp2p-storacha
+          # TODO: switch to master after seetadev/touch-calc-nodejs-backend-libp2p-storacha#1 merges
+          ref: feature/tornado-interop
+          token: ${{ secrets.FASTAPI_REPO_TOKEN }}
+          path: node-interop-src
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -62,6 +93,9 @@ jobs:
           sed -i 's/generate_a_random_secret_here/ci-test-cookie-secret-not-real/g' .env
           if [ "${{ steps.fastapi.outputs.mode }}" = "full" ]; then
             echo "FASTAPI_INTEROP_CONTEXT=./fastapi-interop-src" >> .env
+          fi
+          if [ "${{ steps.node.outputs.mode }}" = "full" ]; then
+            echo "NODE_INTEROP_CONTEXT=./node-interop-src" >> .env
           fi
           # short sidecar timeouts so the 504 test does not wait for the 60 s / 120 s defaults
           sed -i 's/^INTEROP_IMPORT_TIMEOUT=.*/INTEROP_IMPORT_TIMEOUT=8/; s/^INTEROP_EXPORT_TIMEOUT=.*/INTEROP_EXPORT_TIMEOUT=8/' .env
@@ -105,13 +139,15 @@ jobs:
 
       - name: Run Playwright tests
         run: |
-          if [ "${{ steps.fastapi.outputs.mode }}" = "full" ]; then
+          if [ "${{ steps.fastapi.outputs.mode }}" = "full" ] && [ "${{ steps.node.outputs.mode }}" = "full" ]; then
             npx playwright test --reporter=list,html
           else
-            # every spec except interop-fastapi.spec.ts (needs the sidecar)
+            # leave out only the specs whose sidecar is not running
             specs=()
             for f in tests/e2e/*.spec.ts; do
-              [ "$f" = tests/e2e/interop-fastapi.spec.ts ] || specs+=("$f")
+              if [ "$f" = tests/e2e/interop-fastapi.spec.ts ] && [ "${{ steps.fastapi.outputs.mode }}" != "full" ]; then continue; fi
+              if [ "$f" = tests/e2e/interop-node.spec.ts ] && [ "${{ steps.node.outputs.mode }}" != "full" ]; then continue; fi
+              specs+=("$f")
             done
             npx playwright test --reporter=list,html "${specs[@]}"
           fi
@@ -121,16 +157,16 @@ jobs:
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
-        if: always() && steps.fastapi.outcome == 'success'
+        if: always() && steps.fastapi.outcome == 'success' && steps.node.outcome == 'success'
         with:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
 
       - name: Show Docker Compose logs on failure
-        if: failure() && steps.fastapi.outcome == 'success'
+        if: failure() && steps.fastapi.outcome == 'success' && steps.node.outcome == 'success'
         run: docker compose logs
 
       - name: Stop Docker Compose
-        if: always() && steps.fastapi.outcome == 'success'
+        if: always() && steps.fastapi.outcome == 'success' && steps.node.outcome == 'success'
         run: docker compose down
