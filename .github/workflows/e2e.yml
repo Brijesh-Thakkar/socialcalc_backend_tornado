@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: seetadev/touch-calc-fastapi-backend-libp2p-testing
-          ref: feature/socialcalc-fastapi-interop   # TODO: switch to main once the FastAPI PR is merged
+          ref: main
           path: fastapi-interop-src
 
       - name: Set up Docker Buildx
