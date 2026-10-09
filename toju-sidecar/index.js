@@ -67,7 +67,8 @@ function mockConnection() {
       return { blockhash: Keypair.generate().publicKey.toBase58(), lastValidBlockHeight: 1 };
     },
     async sendRawTransaction() {
-      return 'MOCKSIG' + Keypair.generate().publicKey.toBase58();
+      // "mock-tx-" prefix: never mistakable for a real Solana signature (base58, no hyphens).
+      return 'mock-tx-' + Keypair.generate().publicKey.toBase58();
     },
     async confirmTransaction() {
       return { value: { err: null } };

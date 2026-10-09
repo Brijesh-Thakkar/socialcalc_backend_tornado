@@ -44,7 +44,7 @@ The sidecar's `GET /status/:cid` is driven through the SDK's `getUserUploadHisto
 
 ## Known fakery (how the mock differs from the real server, on purpose)
 
-- **CID** is `"bafkmock" + sha256(bytes)[:52]` (deterministic, obviously fake). The real
+- **CID** is `"mock-" + sha256(bytes)[:52]` (deterministic, obviously fake). The real
   server computes a real IPFS CIDv1 via Pinata/ipfs-car.
 - **Instruction** is a single no-op System-Program instruction whose only signer is the
   payer, so the sidecar's ephemeral keypair can sign and `Transaction.serialize()` succeeds.

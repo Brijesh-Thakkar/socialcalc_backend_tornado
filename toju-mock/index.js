@@ -50,9 +50,10 @@ app.use(express.json({ limit: '50mb' }));
 const store = new Map();
 
 function mockCid(bytes) {
-  // Deterministic, content-addressed-ish, but UNMISTAKABLY a mock ("bafkmock" prefix).
+  // Deterministic, but UNMISTAKABLY fake: the "mock-" prefix is not a valid IPFS CID
+  // multibase prefix, so these can never be confused with a real Pinata/Kubo CID.
   const hex = crypto.createHash('sha256').update(bytes).digest('hex');
-  return 'bafkmock' + hex.slice(0, 52);
+  return 'mock-' + hex.slice(0, 52);
 }
 
 function depositInstruction(publicKey) {

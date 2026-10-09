@@ -46,8 +46,9 @@ RETRIEVE_TIMEOUT = float(os.getenv("TOJU_RETRIEVE_TIMEOUT", "30"))
 STATUS_TIMEOUT = float(os.getenv("TOJU_STATUS_TIMEOUT", "15"))
 MAX_UPLOAD_BYTES = int(float(os.getenv("TOJU_MAX_UPLOAD_MB", "20")) * 1024 * 1024)
 
-# IPFS CIDs: mock uses "bafkmock...", Pinata CIDv1 "baf...", Kubo CIDv0 "Qm...". Keep permissive but bounded.
-CID_RE = re.compile(r"^[A-Za-z0-9]{1,128}$")
+# IDs we accept as a CID: Pinata CIDv1 "baf...", Kubo CIDv0 "Qm...", and the mock's
+# clearly-fake "mock-..." ids. Hyphen/dot/underscore are allowed for the mock prefix.
+CID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 
 def _map_sidecar_error(exc):
