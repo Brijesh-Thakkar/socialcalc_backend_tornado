@@ -10,6 +10,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # One explicit compose project for every docker compose call and for the specs that
+      # docker exec into containers (docker.spec.ts, nginx.spec.ts read it), instead of relying
+      # on the checkout directory name (socialcalc_backend_tornado) matching their default.
+      COMPOSE_PROJECT_NAME: tornado_e2e
 
     steps:
       - name: Checkout
