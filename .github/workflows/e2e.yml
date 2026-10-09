@@ -137,6 +137,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
+      # pdftotext: interop-fastapi.spec.ts checks the text of exported PDFs (skipped if it is missing)
+      - name: Install pdftotext (poppler-utils)
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends poppler-utils && pdftotext -v
+
       - name: Run Playwright tests
         run: |
           if [ "${{ steps.fastapi.outputs.mode }}" = "full" ] && [ "${{ steps.node.outputs.mode }}" = "full" ]; then
