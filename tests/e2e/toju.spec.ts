@@ -59,8 +59,24 @@ test.describe('toju storage (MOCK-BACKED)', () => {
     expect(j.result).toBe('ok');
     expect(typeof j.cid).toBe('string');
     expect(j.cid.length).toBeGreaterThan(0);
-    expect(j.mocked).toBe(true);           // never let this masquerade as the real backend
+    expect(j.mock).toBe(true);             // never let this masquerade as the real backend
+    expect(j.cid.startsWith('mock-')).toBe(true);   // fake-shaped id, never mistakable for real
     savedCid = j.cid;
+  });
+
+  test('UI shows the MOCK BACKEND badge next to the CID and on the status view', async ({ authenticatedPage }) => {
+    const page = authenticatedPage;
+    await page.goto('/static/toju-demo.html');
+    await page.fill('#content', SHEET);
+    await page.click('text=Save to toju');
+    // Badge appears next to the CID once the (mock) save returns.
+    await expect(page.locator('[data-testid="toju-mock-badge"]')).toBeVisible();
+    await expect(page.locator('[data-testid="toju-mock-badge"]')).toHaveText(/MOCK BACKEND/);
+    const cidVal = await page.inputValue('#cid');
+    expect(cidVal.startsWith('mock-')).toBe(true);
+    // Badge also appears on the status view.
+    await page.click('text=Status');
+    await expect(page.locator('[data-testid="toju-mock-badge-status"]')).toBeVisible();
   });
 
   test('retrieve by CID is byte-identical to what was saved', async ({ authenticatedPage }) => {

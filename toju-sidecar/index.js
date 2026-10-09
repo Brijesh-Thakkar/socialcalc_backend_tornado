@@ -19,7 +19,7 @@
  * contract this sidecar exercises does not change.
  *
  * Endpoints Tornado calls (see handlers/toju.py):
- *   POST /upload           { sheet, fname?, durationDays? }  -> { cid, url, signature, success, mocked }
+ *   POST /upload           { sheet, fname?, durationDays? }  -> { cid, url, signature, success, mock }
  *   GET  /retrieve/:cid                                      -> raw bytes (byte-identical to what was saved)
  *   GET  /status/:cid                                        -> { cid, active, expiresAt, ... }
  *   GET  /health                                             -> { status, mode, backend }
@@ -89,7 +89,7 @@ app.use((req, res, next) => {
   if (req.path === '/health') return next();
   const tok = req.get('X-Toju-Token') || '';
   if (!SHARED_SECRET || tok !== SHARED_SECRET) {
-    return res.status(401).json({ error: 'unauthorized', message: 'missing or invalid X-Toju-Token', mocked: MODE === 'mock' });
+    return res.status(401).json({ error: 'unauthorized', message: 'missing or invalid X-Toju-Token', mock: MODE === 'mock' });
   }
   next();
 });
@@ -106,7 +106,7 @@ app.post('/upload', async (req, res) => {
   try {
     const { sheet, fname, durationDays } = req.body || {};
     if (typeof sheet !== 'string' || !sheet.length) {
-      return res.status(400).json({ error: 'bad_request', message: 'field "sheet" (string) required', mocked: MODE === 'mock' });
+      return res.status(400).json({ error: 'bad_request', message: 'field "sheet" (string) required', mock: MODE === 'mock' });
     }
     const days = parseInt(durationDays, 10) || DEFAULT_DURATION_DAYS;
     const name = (fname || 'sheet.msc').toString();
@@ -132,15 +132,15 @@ app.post('/upload', async (req, res) => {
       TOJU_API_URL
     );
     if (!result.success) {
-      return res.status(502).json({ error: 'sdk_failed', message: result.error || 'deposit failed', mocked: MODE === 'mock' });
+      return res.status(502).json({ error: 'sdk_failed', message: result.error || 'deposit failed', mock: MODE === 'mock' });
     }
     res.json({
       cid: result.cid, url: result.url, signature: result.signature,
-      success: true, estimate, mode: MODE, mocked: MODE === 'mock',
+      success: true, estimate, mode: MODE, mock: MODE === 'mock',
     });
   } catch (err) {
     console.error('[toju-sidecar] upload error:', err);
-    res.status(500).json({ error: 'sidecar_error', message: String(err && err.message || err), mocked: MODE === 'mock' });
+    res.status(500).json({ error: 'sidecar_error', message: String(err && err.message || err), mock: MODE === 'mock' });
   }
 });
 
@@ -151,13 +151,13 @@ app.get('/retrieve/:cid', async (req, res) => {
   try {
     const url = `${TOJU_API_URL}/ipfs/${encodeURIComponent(req.params.cid)}`;
     const r = await fetch(url);
-    if (r.status === 404) return res.status(404).json({ error: 'not_found', mocked: MODE === 'mock' });
-    if (!r.ok) return res.status(502).json({ error: 'gateway_error', message: 'HTTP ' + r.status, mocked: MODE === 'mock' });
+    if (r.status === 404) return res.status(404).json({ error: 'not_found', mock: MODE === 'mock' });
+    if (!r.ok) return res.status(502).json({ error: 'gateway_error', message: 'HTTP ' + r.status, mock: MODE === 'mock' });
     const buf = Buffer.from(await r.arrayBuffer());
     res.setHeader('Content-Type', r.headers.get('content-type') || 'application/octet-stream');
     res.send(buf);
   } catch (err) {
-    res.status(502).json({ error: 'gateway_unreachable', message: String(err && err.message || err), mocked: MODE === 'mock' });
+    res.status(502).json({ error: 'gateway_unreachable', message: String(err && err.message || err), mock: MODE === 'mock' });
   }
 });
 
@@ -167,14 +167,14 @@ app.get('/status/:cid', async (req, res) => {
   try {
     const hist = await getUserUploadHistory(keypair.publicKey.toBase58(), TOJU_API_URL, { page: 1, limit: 100 });
     const entry = (hist.data || []).find((e) => (e.contentCid || e.cid) === req.params.cid);
-    if (!entry) return res.status(404).json({ cid: req.params.cid, active: false, mocked: MODE === 'mock' });
+    if (!entry) return res.status(404).json({ cid: req.params.cid, active: false, mock: MODE === 'mock' });
     res.json({
       cid: req.params.cid, active: entry.deletionStatus === 'active',
       expiresAt: entry.expiresAt, txHash: entry.transactionHash || null,
-      size: entry.fileSize, mode: MODE, mocked: MODE === 'mock',
+      size: entry.fileSize, mode: MODE, mock: MODE === 'mock',
     });
   } catch (err) {
-    res.status(502).json({ error: 'backend_unreachable', message: String(err && err.message || err), mocked: MODE === 'mock' });
+    res.status(502).json({ error: 'backend_unreachable', message: String(err && err.message || err), mock: MODE === 'mock' });
   }
 });
 

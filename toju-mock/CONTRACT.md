@@ -36,7 +36,7 @@ The SDK has **no retrieve function** — retrieval is by the IPFS gateway URL th
 | Method · Path | Purpose | Returns |
 |---|---|---|
 | `GET /ipfs/:cid` and `/ipfs/:cid/:name` | gateway retrieve (byte-identical to the uploaded bytes) | raw bytes + stored `Content-Type` |
-| `GET /status/:cid` | convenience status lookup used by the sidecar | `{cid, active, expiresAt, txHash, size, mocked}` |
+| `GET /status/:cid` | convenience status lookup used by the sidecar | `{cid, active, expiresAt, txHash, size, mock}` |
 | `GET /health` | liveness | `{status:"ok", mode:"MOCK-BACKED"}` |
 
 The sidecar's `GET /status/:cid` is driven through the SDK's `getUserUploadHistory`

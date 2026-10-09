@@ -48,8 +48,8 @@ class _FakeUpload(tornado.web.RequestHandler):
             import asyncio
             await asyncio.sleep(self.state.delay)
         self.set_header("Content-Type", "application/json")
-        self.finish({"cid": "bafkmockUNIT", "url": "http://mock/ipfs/bafkmockUNIT",
-                     "signature": "MOCKSIG", "success": True, "mocked": True})
+        self.finish({"cid": "mock-UNIT", "url": "http://mock/ipfs/mock-UNIT",
+                     "signature": "mock-tx-UNIT", "success": True, "mock": True})
 
 
 class _FakeRetrieve(tornado.web.RequestHandler):
@@ -64,7 +64,7 @@ class _FakeRetrieve(tornado.web.RequestHandler):
 
 class _FakeStatus(tornado.web.RequestHandler):
     def get(self, cid):
-        self.finish({"cid": cid, "active": True, "mocked": True})
+        self.finish({"cid": cid, "active": True, "mock": True})
 
 
 class TojuHandlerTest(tornado.testing.AsyncHTTPTestCase):
@@ -114,22 +114,22 @@ class TojuHandlerTest(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(r.code, 200)
         data = json.loads(r.body)
         self.assertEqual(data["result"], "ok")
-        self.assertEqual(data["cid"], "bafkmockUNIT")
-        self.assertTrue(data["mocked"])
+        self.assertEqual(data["cid"], "mock-UNIT")
+        self.assertIs(data["mock"], True)   # mock flag must pass through to the UI (badge)
         # Tornado must have forwarded the shared secret and the sheet verbatim.
         self.assertEqual(self.fake_state.last_token, SHARED_SECRET)
         self.assertEqual(self.fake_state.last_body["sheet"], SHEET)
         self.assertEqual(self.fake_state.last_body["durationDays"], 2)
 
     def test_retrieve_is_byte_exact(self):
-        r = self.fetch("/toju/retrieve/bafkmockUNIT", headers=self._cookie())
+        r = self.fetch("/toju/retrieve/mock-UNIT", headers=self._cookie())
         self.assertEqual(r.code, 200)
         self.assertEqual(r.body, SHEET.encode("utf-8"))
 
     def test_status_passthrough(self):
-        r = self.fetch("/toju/status/bafkmockUNIT", headers=self._cookie())
+        r = self.fetch("/toju/status/mock-UNIT", headers=self._cookie())
         self.assertEqual(r.code, 200)
-        self.assertEqual(json.loads(r.body)["cid"], "bafkmockUNIT")
+        self.assertEqual(json.loads(r.body)["cid"], "mock-UNIT")
 
     # ── error mapping ───────────────────────────────────────────────────────
     def test_timeout_maps_to_504(self):
@@ -143,7 +143,7 @@ class TojuHandlerTest(tornado.testing.AsyncHTTPTestCase):
     def test_unreachable_maps_to_502(self):
         # Point at a port where nothing listens.
         toju.TOJU_SIDECAR_URL = "http://127.0.0.1:1"
-        r = self.fetch("/toju/retrieve/bafkmockUNIT", headers=self._cookie())
+        r = self.fetch("/toju/retrieve/mock-UNIT", headers=self._cookie())
         self.assertEqual(r.code, 502)
         self.assertEqual(json.loads(r.body)["error"], "sidecar_unreachable")
 

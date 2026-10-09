@@ -1467,9 +1467,9 @@ config only (`TOJU_API_URL`, `TOJU_MODE=real`); the Tornado routes do not change
 
 | Method · Path | Purpose |
 |---|---|
-| `POST /toju/save` | form `content` (SocialCalc save string) + `fname?` + `durationDays?` → `{cid, url, signature, mocked}` |
+| `POST /toju/save` | form `content` (SocialCalc save string) + `fname?` + `durationDays?` → `{cid, url, signature, mock}` |
 | `GET /toju/retrieve/<cid>` | the stored bytes, byte-identical to what was saved |
-| `GET /toju/status/<cid>` | `{cid, active, expiresAt, …, mocked}` |
+| `GET /toju/status/<cid>` | `{cid, active, expiresAt, …, mock}` |
 | `GET /toju/health` | sidecar health |
 
 A small dev UI is served at **`/static/toju-demo.html`**.
