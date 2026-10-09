@@ -74,8 +74,11 @@ services:
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
       - FASTAPI_INTEROP_URL=http://fastapi-interop:5053
+      - NODE_INTEROP_URL=http://node-interop:5055
     depends_on:
       fastapi-interop:
+        condition: service_healthy
+      node-interop:
         condition: service_healthy
       memcache:
         condition: service_started
@@ -101,8 +104,11 @@ services:
       - MESHKIT_SIDECAR_URL=http://meshkit-sidecar:5050
       - MESHKIT_KUBO_SIDECAR_URL=http://meshkit-sidecar-kubo:5051
       - FASTAPI_INTEROP_URL=http://fastapi-interop:5053
+      - NODE_INTEROP_URL=http://node-interop:5055
     depends_on:
       fastapi-interop:
+        condition: service_healthy
+      node-interop:
         condition: service_healthy
       memcache:
         condition: service_started
@@ -189,6 +195,44 @@ services:
       - app_network
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:5053/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  # ── SocialCalc Node.js sidecar: second implementation of the save/load API ──
+  # Tornado calls it over HTTP (handlers/node_interop.py). Built from the Node repo; point
+  # NODE_INTEROP_CONTEXT at a checkout of touch-calc-nodejs-backend-libp2p-storacha
+  # (branch feature/tornado-interop). It shares the S3/MinIO bucket with Tornado, whose object
+  # keys it reproduces. Internal network only, no host port.
+  node-interop:
+    build:
+      context: ${NODE_INTEROP_CONTEXT:-../touch-calc-nodejs-backend-libp2p-storacha}
+      args:
+        # The sidecar only serves /v1/*, /health and save/open; Chromium is only needed for the
+        # Node app's own POST /htmltopdf. Skipping it keeps the image ~870 MB instead of 1.66 GB.
+        PUPPETEER_SKIP_DOWNLOAD: "true"
+    expose:
+      - "5055"
+    environment:
+      - PORT=5055
+      - SECRET_KEY=${NODE_INTEROP_SESSION_SECRET:-change-me-node-session-secret}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-}
+      - S3_BUCKET_NAME=${AWS_S3_BUCKET}
+      # service-to-service token for /v1/* (/v1 answers 503 without it)
+      - NODE_INTEROP_SHARED_SECRET=${NODE_INTEROP_SHARED_SECRET:?set NODE_INTEROP_SHARED_SECRET in .env (see .env.example)}
+      # Node keeps its own user records here, apart from Tornado's ["home","users",<email>] (different hash format)
+      - NODE_USERS_PREFIX=node-users
+    networks:
+      - app_network
+    depends_on:
+      createbuckets:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5055/health"]
       interval: 10s
       timeout: 5s
       retries: 6

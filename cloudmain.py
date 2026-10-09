@@ -26,7 +26,7 @@ import uuid
 import json
 import cloud.storage.storage
 import cloud.authenticate.user
-from handlers import interop
+from handlers import interop, node_interop
 
 from tornado.options import define, options
 from util.amazon_ses import AmazonSES,EmailMessage
@@ -85,6 +85,7 @@ class Application(tornado.web.Application):
             (r"/finrecord", FinanceRecordKeeper),
             (r"/bisrecord", BusinessRecordKeeper),
             *interop.ROUTES,   # /interop/* (fastapi-interop sidecar)
+            *node_interop.ROUTES,   # /nodeinterop/* (node-interop sidecar)
 
 
             #(r"/multisheet", MultiSheetHandler),
