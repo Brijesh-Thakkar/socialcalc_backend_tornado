@@ -1442,3 +1442,48 @@ You **must** set `PUBLIC_BASE_URL` when:
 | GET/POST | `/iconimg` | No | Icon image generation |
 | GET/POST | `/htmltopdf` | No | HTML to PDF conversion |
 | GET/POST | `/amazonwebapp/<p1>/randomCode/<p2>` | No | Amazon webapp handler |
+
+---
+
+## toju: decentralized sheet storage (IPFS + SOL) — **MOCK-BACKED**
+
+This branch (`feature/socialcalc-toju-storage`) adds an **optional** way to save a sheet to IPFS
+and pay for the storage with Solana, via the `@toju.network/sol` SDK (the Storacha-Solana-Sdk
+project). It follows the same sidecar pattern as meshkit / fastapi-interop: Tornado never imports
+the SDK; it calls a Node **`toju-sidecar`** over HTTP (`handlers/toju.py`), with the standard
+error mapping (unreachable → **502**, timeout → **504**) and the shared-secret `X-Toju-Token`.
+
+### ⚠️ MOCK-BACKED
+
+The real `toju.network` API is suspended and its on-chain program is not on devnet
+(`AUDIT_2.md §1`), so this integration is **mock-backed**: `toju-sidecar` runs `TOJU_MODE=mock`
+and drives the real SDK against a local **`toju-mock`** that implements exactly the API the SDK
+calls (**`toju-mock/CONTRACT.md`**, derived from SDK + server source with file:line cites).
+**No real IPFS pinning, no real Solana transaction, no money.** devnet only — the sidecar refuses
+to start on mainnet unless `ALLOW_MAINNET=true` (never set). Swapping in a real backend later is
+config only (`TOJU_API_URL`, `TOJU_MODE=real`); the Tornado routes do not change.
+
+### Routes (login required, like `/webapp`)
+
+| Method · Path | Purpose |
+|---|---|
+| `POST /toju/save` | form `content` (SocialCalc save string) + `fname?` + `durationDays?` → `{cid, url, signature, mocked}` |
+| `GET /toju/retrieve/<cid>` | the stored bytes, byte-identical to what was saved |
+| `GET /toju/status/<cid>` | `{cid, active, expiresAt, …, mocked}` |
+| `GET /toju/health` | sidecar health |
+
+A small dev UI is served at **`/static/toju-demo.html`**.
+
+### Services (docker-compose)
+
+`toju-mock` (:5057, internal) and `toju-sidecar` (:5056, internal). Set `TOJU_SHARED_SECRET` in
+`.env` (see `.env.example`). `COMPOSE_PROJECT_NAME=tornado-toju docker compose up` brings the
+whole stack (this branch binds Nginx on host `:8080`).
+
+### Tests
+
+- `python3 -m unittest tests.unit.test_toju_handler` — handler unit tests against a fake sidecar (no docker).
+- `cd toju-sidecar && npm test` — contract test: runs the real SDK against a recording server,
+  fails loudly if its requests stop matching the mock.
+- `tests/e2e/toju.spec.ts` — full-stack E2E via the mock (save ₹/Hindi/GST% invoice → CID →
+  byte-identical retrieve; 502/504; token missing/wrong).
