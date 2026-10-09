@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { execSync } from 'child_process';
 
+// Compose project name; override when the stack runs under a different project.
+const PROJECT = process.env.COMPOSE_PROJECT_NAME || 'tornado_version';
+
 /**
  * Docker / Infrastructure Tests
  *
@@ -25,7 +28,7 @@ test.describe('Docker Compose Stack', () => {
 
   test('memcached is reachable from app1', () => {
     const out = execSync(
-      `docker exec tornado_version-app1-1 python3 -c "
+      `docker exec ${PROJECT}-app1-1 python3 -c "
 import memcache, os
 mc = memcache.Client([os.environ.get('MEMCACHE_HOST','127.0.0.1')])
 mc.set('docker_test', 'ping')
@@ -38,7 +41,7 @@ print(mc.get('docker_test'))
 
   test('memcached is reachable from app2', () => {
     const out = execSync(
-      `docker exec tornado_version-app2-1 python3 -c "
+      `docker exec ${PROJECT}-app2-1 python3 -c "
 import memcache, os
 mc = memcache.Client([os.environ.get('MEMCACHE_HOST','127.0.0.1')])
 mc.set('docker_test2', 'pong')
@@ -51,7 +54,7 @@ print(mc.get('docker_test2'))
 
   test('shared memcached: app1 writes, app2 reads', () => {
     execSync(
-      `docker exec tornado_version-app1-1 python3 -c "
+      `docker exec ${PROJECT}-app1-1 python3 -c "
 import memcache, os
 mc = memcache.Client([os.environ.get('MEMCACHE_HOST','127.0.0.1')])
 mc.set('shared_probe', 'cross_instance_ok')
@@ -59,7 +62,7 @@ mc.set('shared_probe', 'cross_instance_ok')
       { encoding: 'utf8' }
     );
     const out = execSync(
-      `docker exec tornado_version-app2-1 python3 -c "
+      `docker exec ${PROJECT}-app2-1 python3 -c "
 import memcache, os
 mc = memcache.Client([os.environ.get('MEMCACHE_HOST','127.0.0.1')])
 print(mc.get('shared_probe'))
@@ -71,7 +74,7 @@ print(mc.get('shared_probe'))
 
   test('Docker DNS resolves app1, app2, memcache from nginx', () => {
     const out = execSync(
-      'docker exec tornado_version-nginx-1 getent hosts app1 app2 memcache 2>&1',
+      `docker exec ${PROJECT}-nginx-1 getent hosts app1 app2 memcache 2>&1`,
       { encoding: 'utf8' }
     );
     expect(out).toContain('app1');
@@ -90,7 +93,7 @@ print(mc.get('shared_probe'))
   });
 
   test('nginx config validates successfully', () => {
-    const out = execSync('docker exec tornado_version-nginx-1 nginx -t 2>&1', {
+    const out = execSync(`docker exec ${PROJECT}-nginx-1 nginx -t 2>&1`, {
       encoding: 'utf8',
     });
     expect(out).toContain('syntax is ok');

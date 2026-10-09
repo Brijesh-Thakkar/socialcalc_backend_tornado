@@ -10,17 +10,46 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # One explicit compose project for every docker compose call and for the specs that
+      # docker exec into containers (docker.spec.ts, nginx.spec.ts read it), instead of relying
+      # on the checkout directory name (socialcalc_backend_tornado) matching their default.
+      COMPOSE_PROJECT_NAME: tornado_e2e
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Build context of the fastapi-interop sidecar (docker-compose.yml: FASTAPI_INTEROP_CONTEXT)
+      # The fastapi-interop sidecar source (docker-compose.yml: FASTAPI_INTEROP_CONTEXT) lives in the
+      # private repo seetadev/touch-calc-fastapi-backend-libp2p-testing, so the checkout needs the
+      # FASTAPI_REPO_TOKEN secret (PAT with read access to it).
+      # - pushes and same-repo PRs: the token is required; without it the job fails.
+      # - fork PRs (GitHub does not pass secrets to them): the stack runs without the sidecar
+      #   (.github/ci/compose.no-fastapi-interop.yml) and only interop-fastapi.spec.ts is left out.
+      - name: Decide whether the fastapi-interop sidecar can be built
+        id: fastapi
+        env:
+          FASTAPI_REPO_TOKEN: ${{ secrets.FASTAPI_REPO_TOKEN }}
+          IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          if [ -n "$FASTAPI_REPO_TOKEN" ]; then
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+          elif [ "$IS_FORK_PR" = "true" ]; then
+            echo "mode=no-interop" >> "$GITHUB_OUTPUT"
+            echo "COMPOSE_FILE=docker-compose.yml:.github/ci/compose.no-fastapi-interop.yml" >> "$GITHUB_ENV"
+            echo "::warning title=fastapi-interop not tested::Fork PR without FASTAPI_REPO_TOKEN: the fastapi-interop sidecar and tests/e2e/interop-fastapi.spec.ts are skipped; all other E2E tests run."
+          else
+            echo "::error title=FASTAPI_REPO_TOKEN missing::The FASTAPI_REPO_TOKEN Actions secret is not set. It is required to check out the private repo seetadev/touch-calc-fastapi-backend-libp2p-testing (fastapi-interop sidecar) for pushes and same-repo PRs."
+            exit 1
+          fi
+
       - name: Checkout fastapi-interop sidecar source
+        if: steps.fastapi.outputs.mode == 'full'
         uses: actions/checkout@v4
         with:
           repository: seetadev/touch-calc-fastapi-backend-libp2p-testing
-          ref: feature/socialcalc-fastapi-interop   # TODO: switch to main once the FastAPI PR is merged
+          ref: main
+          token: ${{ secrets.FASTAPI_REPO_TOKEN }}
           path: fastapi-interop-src
 
       - name: Set up Docker Buildx
@@ -31,7 +60,9 @@ jobs:
           cp .env.example .env
           # Override with CI-safe values
           sed -i 's/generate_a_random_secret_here/ci-test-cookie-secret-not-real/g' .env
-          echo "FASTAPI_INTEROP_CONTEXT=./fastapi-interop-src" >> .env
+          if [ "${{ steps.fastapi.outputs.mode }}" = "full" ]; then
+            echo "FASTAPI_INTEROP_CONTEXT=./fastapi-interop-src" >> .env
+          fi
           # short sidecar timeouts so the 504 test does not wait for the 60 s / 120 s defaults
           sed -i 's/^INTEROP_IMPORT_TIMEOUT=.*/INTEROP_IMPORT_TIMEOUT=8/; s/^INTEROP_EXPORT_TIMEOUT=.*/INTEROP_EXPORT_TIMEOUT=8/' .env
           cp meshkit-service/.env.example meshkit-service/.env
@@ -73,23 +104,33 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run Playwright tests
-        run: npx playwright test --reporter=list,html
+        run: |
+          if [ "${{ steps.fastapi.outputs.mode }}" = "full" ]; then
+            npx playwright test --reporter=list,html
+          else
+            # every spec except interop-fastapi.spec.ts (needs the sidecar)
+            specs=()
+            for f in tests/e2e/*.spec.ts; do
+              [ "$f" = tests/e2e/interop-fastapi.spec.ts ] || specs+=("$f")
+            done
+            npx playwright test --reporter=list,html "${specs[@]}"
+          fi
         env:
           BASE_URL: http://localhost:8080
           CI: true
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.fastapi.outcome == 'success'
         with:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
 
       - name: Show Docker Compose logs on failure
-        if: failure()
+        if: failure() && steps.fastapi.outcome == 'success'
         run: docker compose logs
 
       - name: Stop Docker Compose
-        if: always()
+        if: always() && steps.fastapi.outcome == 'success'
         run: docker compose down
