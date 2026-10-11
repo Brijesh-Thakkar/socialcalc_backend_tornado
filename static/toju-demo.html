@@ -26,9 +26,7 @@
 </head>
 <body>
   <h1>Save sheet to IPFS &amp; pay with SOL <span style="font-weight:400">— toju</span></h1>
-  <p class="mock"><strong>MOCK-BACKED.</strong> This talks to a local mock of the toju.network
-  backend: no real IPFS pinning, no real Solana transaction, no money. See
-  <code>toju-mock/CONTRACT.md</code>.</p>
+  <p id="banner" class="mock" data-testid="toju-banner">Checking toju backend…</p>
 
   <div class="row">
     <label>Sheet content (SocialCalc save string)</label><br />
@@ -43,7 +41,7 @@ cell:B1:v:9374.68
     <button onclick="save()">Save to toju</button>
   </div>
   <div class="row">
-    <label>CID</label> <input id="cid" size="52" placeholder="mock-…" />
+    <label>CID</label> <input id="cid" size="52" placeholder="CID" />
     <span id="badge-cid" class="badge" data-testid="toju-mock-badge">MOCK BACKEND — no real Solana/IPFS</span>
     <br />
     <button onclick="retrieve()">Retrieve</button>
@@ -53,6 +51,10 @@ cell:B1:v:9374.68
   <div class="row">
     <label>Status</label> <span id="badge-status" class="badge" data-testid="toju-mock-badge-status">MOCK BACKEND — no real Solana/IPFS</span>
   </div>
+  <div class="row" id="txrow" style="display:none">
+    <label>On-chain tx</label>
+    <a id="txlink" data-testid="toju-tx-link" target="_blank" rel="noopener"></a>
+  </div>
   <div class="row"><label>Result</label><pre id="out">—</pre></div>
 
 <script>
@@ -60,6 +62,28 @@ cell:B1:v:9374.68
     (typeof x === 'string') ? x : JSON.stringify(x, null, 2); };
   // Show/hide the "MOCK BACKEND" badge based on the sidecar's mock flag passed through Tornado.
   const badge = (id, isMock) => document.getElementById(id).classList.toggle('show', !!isMock);
+  // Real mode: show the on-chain transaction link (hidden in mock mode, where there is no real tx).
+  function txLink(j) {
+    const row = document.getElementById('txrow'), a = document.getElementById('txlink');
+    const link = !j.mock && j.explorer ? j.explorer : null;
+    row.style.display = link ? '' : 'none';
+    if (link) { a.href = link; a.textContent = (j.signature || j.txHash || link); }
+  }
+  // Banner reflects the sidecar's actual mode (mock vs real) from /toju/health.
+  async function loadBanner() {
+    const b = document.getElementById('banner');
+    try {
+      const r = await fetch('/toju/health', { credentials: 'include' });
+      const h = (await r.json()).sidecar || {};
+      if (h.mock) {
+        b.innerHTML = '<strong>MOCK-BACKED.</strong> This talks to a local mock of the toju.network backend: no real IPFS pinning, no real Solana transaction, no money.';
+      } else {
+        b.style.background = '#d1f2d8'; b.style.borderColor = '#8fd19e';
+        b.innerHTML = '<strong>REAL</strong> — Solana <code>' + (h.cluster || '?') + '</code>, payer <code>' + (h.payer || '?') + '</code>. Saving spends real (test-network) funds.';
+      }
+    } catch (e) { b.textContent = 'toju backend unreachable: ' + e.message; }
+  }
+  loadBanner();
 
   async function save() {
     const body = new URLSearchParams();
@@ -71,6 +95,7 @@ cell:B1:v:9374.68
       const j = await r.json();
       if (j.cid) document.getElementById('cid').value = j.cid;
       badge('badge-cid', j.mock);
+      txLink(j);
       show({ http: r.status, ...j });
     } catch (e) { show('error: ' + e.message); }
   }
@@ -84,7 +109,7 @@ cell:B1:v:9374.68
   }
   async function status() {
     const cid = encodeURIComponent(document.getElementById('cid').value);
-    try { const r = await fetch('/toju/status/' + cid, { credentials: 'include' }); const j = await r.json(); badge('badge-status', j.mock); show({ http: r.status, ...j }); }
+    try { const r = await fetch('/toju/status/' + cid, { credentials: 'include' }); const j = await r.json(); badge('badge-status', j.mock); txLink({ ...j, signature: j.txHash }); show({ http: r.status, ...j }); }
     catch (e) { show('error: ' + e.message); }
   }
   async function health() {
