@@ -137,9 +137,11 @@ class TojuSaveHandler(TojuBaseHandler):
         except ValueError:
             return self.fail(502, "sidecar_bad_response", "the toju sidecar returned invalid JSON")
         self.set_header("Content-Type", "application/json")
-        # Pass the sidecar's mock flag straight through so the UI can show the MOCK badge.
+        # Pass the sidecar's mock flag + (real mode) cluster/explorer straight through so the
+        # UI can hide the MOCK badge and show the on-chain tx link.
         self.finish({"result": "ok", "cid": data.get("cid"), "url": data.get("url"),
                      "signature": data.get("signature"), "estimate": data.get("estimate"),
+                     "cluster": data.get("cluster"), "explorer": data.get("explorer"),
                      "mock": bool(data.get("mock"))})
 
 

@@ -34,6 +34,7 @@ class _FakeState:
         self.last_path = None
         self.last_body = None
         self.delay = 0.0
+        self.real = False   # when True the fake sidecar replies like TOJU_MODE=real
 
 
 class _FakeUpload(tornado.web.RequestHandler):
@@ -48,6 +49,11 @@ class _FakeUpload(tornado.web.RequestHandler):
             import asyncio
             await asyncio.sleep(self.state.delay)
         self.set_header("Content-Type", "application/json")
+        if self.state.real:
+            self.finish({"cid": "bafyREAL", "url": "http://gw/ipfs/bafyREAL", "signature": "5REALSIG",
+                         "cluster": "devnet", "explorer": "https://explorer.solana.com/tx/5REALSIG?cluster=devnet",
+                         "success": True, "mock": False})
+            return
         self.finish({"cid": "mock-UNIT", "url": "http://mock/ipfs/mock-UNIT",
                      "signature": "mock-tx-UNIT", "success": True, "mock": True})
 
@@ -120,6 +126,17 @@ class TojuHandlerTest(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(self.fake_state.last_token, SHARED_SECRET)
         self.assertEqual(self.fake_state.last_body["sheet"], SHEET)
         self.assertEqual(self.fake_state.last_body["durationDays"], 2)
+
+    def test_real_mode_passes_cluster_and_explorer_and_mock_false(self):
+        import urllib.parse
+        self.fake_state.real = True
+        r = self.fetch("/toju/save", method="POST", body=urllib.parse.urlencode({"content": SHEET}),
+                       headers=self._cookie())
+        self.assertEqual(r.code, 200)
+        data = json.loads(r.body)
+        self.assertIs(data["mock"], False)            # real mode: UI must hide the MOCK badge
+        self.assertEqual(data["cluster"], "devnet")
+        self.assertIn("explorer.solana.com/tx/5REALSIG", data["explorer"])   # UI shows the tx link
 
     def test_retrieve_is_byte_exact(self):
         r = self.fetch("/toju/retrieve/mock-UNIT", headers=self._cookie())
