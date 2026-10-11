@@ -27,6 +27,7 @@ import json
 import cloud.storage.storage
 import cloud.authenticate.user
 from handlers import interop
+from handlers import toju  # MOCK-BACKED toju/Storacha-Solana-Sdk sidecar
 
 from tornado.options import define, options
 from util.amazon_ses import AmazonSES,EmailMessage
@@ -102,6 +103,7 @@ class Application(tornado.web.Application):
             (r"/bisrecord", BusinessRecordKeeper),
             (r"/sync", sync.SyncHandler),
             *interop.ROUTES,   # /interop/* (fastapi-interop sidecar)
+            *toju.ROUTES,      # /toju/* (MOCK-BACKED toju-sidecar: IPFS+SOL sheet storage)
 
 
             #(r"/multisheet", MultiSheetHandler),

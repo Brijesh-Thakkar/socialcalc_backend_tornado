@@ -1442,3 +1442,78 @@ You **must** set `PUBLIC_BASE_URL` when:
 | GET/POST | `/iconimg` | No | Icon image generation |
 | GET/POST | `/htmltopdf` | No | HTML to PDF conversion |
 | GET/POST | `/amazonwebapp/<p1>/randomCode/<p2>` | No | Amazon webapp handler |
+
+---
+
+## toju: decentralized sheet storage (IPFS + SOL)
+
+Save a SocialCalc sheet to IPFS and pay for the storage with Solana, via the
+`@toju.network/sol` SDK (the Storacha-Solana-Sdk project). Same sidecar pattern as meshkit /
+fastapi-interop: Tornado never imports the SDK; it calls a Node **`toju-sidecar`** over HTTP
+(`handlers/toju.py`) with the standard error mapping (unreachable -> **502**, timeout -> **504**)
+and a shared-secret `X-Toju-Token`. The HTTP contract is identical in both modes below.
+
+### Two modes: `mock` (CI / default compose) and `real` (on-chain)
+
+`TOJU_MODE` is **required** on the sidecar - there is no default; it refuses to start without
+`mock` or `real`. Mainnet is always refused unless `ALLOW_MAINNET=true` (never set anywhere).
+
+| | `mock` | `real` |
+|---|---|---|
+| Used by | **CI** and `docker compose up` | local / on-chain demo, production |
+| Backend | local `toju-mock` (implements the SDK contract: `toju-mock/CONTRACT.md`) | a real toju server (`TOJU_API_URL`) |
+| Solana | none (fake connection, throwaway signer) | real Connection on `SOLANA_CLUSTER` (`devnet`/`testnet`) |
+| IPFS | none (in-memory) | real pin on the toju server's IPFS |
+| Funds | none | spends real (test-network) funds from the payer key |
+| ids | `mock-...` CIDs, `mock-tx-...` signatures | real CIDs and Solana signatures |
+| UI | red **MOCK BACKEND** badge | badge hidden; explorer link to the deposit tx |
+
+**CI stays in mock mode.** A funded payer key cannot live in CI, so CI runs the base
+`docker-compose.yml` (sidecar `TOJU_MODE=mock`) and `tests/e2e/toju.spec.ts`. The real-mode spec
+`tests/e2e/toju-real.spec.ts` only runs with `TOJU_REAL_E2E=1` against a real-mode stack, and the
+mock spec skips itself against a real-mode stack, so neither can run in the wrong place.
+
+### Run in real mode (local, Solana devnet)
+
+Real mode needs a toju server and a funded payer keypair. The payer key is **mounted from outside
+the repo and never committed**.
+
+```bash
+# 1. a toju server reachable from the sidecar - e.g. self-hosted locally on :5040, on devnet,
+#    with its IPFS gateway on :8080 (toju's hosted API is suspended; see below)
+# 2. bring the stack up with the real-mode override
+TOJU_PAYER_KEYPAIR_HOST=~/Desktop/c4gt-work/.keys/sol-payer.json \
+COMPOSE_PROJECT_NAME=tornado-toju \
+docker compose -f docker-compose.yml -f docker-compose.toju-real.yml up -d --build
+# app: http://localhost:18080   (nginx moves to 18080 in this mode)
+# 3. open http://localhost:18080/static/toju-demo.html after logging in, or run the real spec:
+TOJU_REAL_E2E=1 BASE_URL=http://localhost:18080 npx playwright test tests/e2e/toju-real.spec.ts
+```
+
+Sidecar variables (all documented with placeholders in `toju-sidecar/.env.example`):
+`TOJU_MODE`, `TOJU_API_URL`, `TOJU_SHARED_SECRET`, `SOLANA_CLUSTER` (`devnet`|`testnet`),
+`SOLANA_RPC`, `TOJU_PROGRAM_ID`, `TOJU_PAYER_KEYPAIR`, `TOJU_GATEWAY_URL`, `ALLOW_MAINNET`.
+
+**Switching to toju's hosted API once it is back:** set `TOJU_API_URL=https://api.toju.network`
+(and `TOJU_GATEWAY_URL` to its gateway), `SOLANA_CLUSTER` to the cluster that deployment uses, and
+`TOJU_PROGRAM_ID` to its program id. No Tornado code changes.
+
+### Routes (login required, like `/webapp`)
+
+| Method / Path | Purpose |
+|---|---|
+| `POST /toju/save` | form `content` (SocialCalc save string) + `fname?` + `durationDays?` -> `{cid, url, signature, cluster, explorer, mock}` |
+| `GET /toju/retrieve/<cid>` | the stored bytes, byte-identical to what was saved |
+| `GET /toju/status/<cid>` | `{cid, active, expiresAt, txHash, explorer, mock}` |
+| `GET /toju/health` | sidecar health (mode, cluster, payer) |
+
+A small dev UI is served at **`/static/toju-demo.html`**. `durationDays` must be at least the
+on-chain config minimum (7 days on our devnet deployment); the page defaults to 30.
+
+### Tests
+
+- `python3 -m unittest tests.unit.test_toju_handler` - handler unit tests against a fake sidecar (no docker).
+- `cd toju-sidecar && npm test` - contract test: runs the real SDK against a recording server and fails
+  loudly if its requests stop matching the mock.
+- `tests/e2e/toju.spec.ts` - full-stack E2E via the mock (CI).
+- `tests/e2e/toju-real.spec.ts` - real devnet E2E (opt-in, see above).

@@ -1,0 +1,47 @@
+# REAL-mode override for the toju sidecar (local / on-chain demo). NOT used by CI (CI stays MOCK).
+#
+#   COMPOSE_PROJECT_NAME=tornado-toju \
+#   TOJU_PAYER_KEYPAIR_HOST=~/Desktop/c4gt-work/.keys/sol-payer.json \
+#   docker compose -f docker-compose.yml -f docker-compose.toju-real.yml up -d --build
+#
+# What it changes vs the base file:
+#   * toju-sidecar: TOJU_MODE=real against a toju server on the HOST (default: local self-hosted
+#     server on :5040, Solana devnet). Runs on the host network so it can reach the host's
+#     toju API (:5040) and IPFS gateway (:8080, loopback-only). The payer keypair is mounted
+#     read-only from OUTSIDE the repo; nothing secret is committed.
+#   * app1/app2 reach the sidecar via host.docker.internal:5056.
+#   * nginx host port moves to 18080 (the local IPFS gateway already holds 127.0.0.1:8080).
+#   * toju-mock is not used in this mode (profile-gated off).
+services:
+  toju-sidecar:
+    network_mode: host
+    networks: !reset null
+    depends_on: !reset {}
+    ports: !reset []
+    environment:
+      - TOJU_MODE=real
+      - TOJU_SIDECAR_PORT=5056
+      - TOJU_API_URL=${TOJU_API_URL_REAL:-http://127.0.0.1:5040}
+      - TOJU_GATEWAY_URL=${TOJU_GATEWAY_URL_REAL:-http://127.0.0.1:8080}
+      - SOLANA_CLUSTER=${SOLANA_CLUSTER:-devnet}
+      - TOJU_PROGRAM_ID=${TOJU_PROGRAM_ID:-AJQL4D6ydLYNLxcLNjXt8d4FGshAqsfLspowHkyiMnL7}
+      - TOJU_PAYER_KEYPAIR=/run/keys/payer.json
+      - TOJU_SHARED_SECRET=${TOJU_SHARED_SECRET:?set TOJU_SHARED_SECRET in .env}
+    volumes:
+      - ${TOJU_PAYER_KEYPAIR_HOST:?path to the payer keypair JSON on the host}:/run/keys/payer.json:ro
+
+  app1:
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    environment:
+      - TOJU_SIDECAR_URL=http://host.docker.internal:5056
+  app2:
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    environment:
+      - TOJU_SIDECAR_URL=http://host.docker.internal:5056
+
+  nginx:
+    ports: !override
+      - "18080:80"
+
+  toju-mock:
+    profiles: ["mock-only"]

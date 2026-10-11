@@ -1,0 +1,16 @@
+{
+  "name": "toju-mock",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MOCK-BACKED local stand-in for the toju.network server — implements exactly the API @toju.network/sol calls. NOT the real backend.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test/contract.test.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "multer": "^2.0.1"
+  }
+}
