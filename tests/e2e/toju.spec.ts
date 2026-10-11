@@ -38,6 +38,15 @@ async function waitSidecarUp(request: any) {
 test.describe('toju storage (MOCK-BACKED)', () => {
   let savedCid = '';
 
+  // This spec asserts mock behaviour (mock-* ids, MOCK badge, container pause/stop). When the
+  // stack was brought up in REAL mode (docker-compose.toju-real.yml) it self-skips; the
+  // real-mode behaviour is covered by toju-real.spec.ts.
+  test.beforeEach(async ({ request }) => {
+    const h = await request.get('/toju/health');
+    const body = h.ok() ? await h.json() : {};
+    test.skip(body?.sidecar?.mock === false, 'stack is in REAL mode - see toju-real.spec.ts');
+  });
+
   test('health is proxied and anonymous callers are rejected', async ({ request }) => {
     const h = await request.get('/toju/health');
     expect(h.status()).toBe(200);
