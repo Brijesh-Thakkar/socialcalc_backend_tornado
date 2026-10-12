@@ -15,6 +15,11 @@ jobs:
       # docker exec into containers (docker.spec.ts, nginx.spec.ts read it), instead of relying
       # on the checkout directory name (socialcalc_backend_tornado) matching their default.
       COMPOSE_PROJECT_NAME: tornado_e2e
+      # Source of the socialcalc-ai image (docker-compose.yml: SOCIALCALC_AI_CONTEXT). The Dockerfile lives on
+      # branch feature/docker of the contributor fork until it is merged; then switch these two to
+      # aspiringsdgs/socialcalc-ai @ main.
+      SOCIALCALC_AI_REPO: Brijesh-Thakkar/socialcalc-ai
+      SOCIALCALC_AI_REF: feature/docker
 
     steps:
       - name: Checkout
@@ -36,8 +41,8 @@ jobs:
             echo "mode=full" >> "$GITHUB_OUTPUT"
           elif [ "$IS_FORK_PR" = "true" ]; then
             echo "mode=no-interop" >> "$GITHUB_OUTPUT"
-            echo "COMPOSE_FILE=docker-compose.yml:.github/ci/compose.no-fastapi-interop.yml" >> "$GITHUB_ENV"
-            echo "::warning title=fastapi-interop not tested::Fork PR without FASTAPI_REPO_TOKEN: the fastapi-interop sidecar and tests/e2e/interop-fastapi.spec.ts are skipped; all other E2E tests run."
+            echo "COMPOSE_FILE=docker-compose.yml:.github/ci/compose.no-fastapi-interop.yml:.github/ci/compose.no-socialcalc-ai.yml" >> "$GITHUB_ENV"
+            echo "::warning title=fastapi-interop and socialcalc-ai not tested::Fork PR without FASTAPI_REPO_TOKEN: the fastapi-interop sidecar, the socialcalc-ai UI service and tests/e2e/interop-fastapi.spec.ts + tests/e2e/socialcalc-ai.spec.ts are skipped; all other E2E tests run."
           else
             echo "::error title=FASTAPI_REPO_TOKEN missing::The FASTAPI_REPO_TOKEN Actions secret is not set. It is required to check out the private repo seetadev/touch-calc-fastapi-backend-libp2p-testing (fastapi-interop sidecar) for pushes and same-repo PRs."
             exit 1
@@ -52,6 +57,17 @@ jobs:
           token: ${{ secrets.FASTAPI_REPO_TOKEN }}
           path: fastapi-interop-src
 
+      # The socialcalc-ai UI image is built from its own repo, checked out with the same token.
+      # Fork PRs (no secrets) skip only this service, see compose.no-socialcalc-ai.yml.
+      - name: Checkout socialcalc-ai source
+        if: steps.fastapi.outputs.mode == 'full'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOCIALCALC_AI_REPO }}
+          ref: ${{ env.SOCIALCALC_AI_REF }}
+          token: ${{ secrets.FASTAPI_REPO_TOKEN }}
+          path: socialcalc-ai-src
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -62,6 +78,9 @@ jobs:
           sed -i 's/generate_a_random_secret_here/ci-test-cookie-secret-not-real/g' .env
           if [ "${{ steps.fastapi.outputs.mode }}" = "full" ]; then
             echo "FASTAPI_INTEROP_CONTEXT=./fastapi-interop-src" >> .env
+            echo "SOCIALCALC_AI_CONTEXT=./socialcalc-ai-src" >> .env
+            # short UI-proxy read timeout so the 504 test does not wait for the 60 s default
+            sed -i 's/^SOCIALCALC_AI_READ_TIMEOUT=.*/SOCIALCALC_AI_READ_TIMEOUT=5/' .env
           fi
           # short sidecar timeouts so the 504 test does not wait for the 60 s / 120 s defaults
           sed -i 's/^INTEROP_IMPORT_TIMEOUT=.*/INTEROP_IMPORT_TIMEOUT=8/; s/^INTEROP_EXPORT_TIMEOUT=.*/INTEROP_EXPORT_TIMEOUT=8/' .env
@@ -91,6 +110,20 @@ jobs:
           docker compose logs
           exit 1
 
+      - name: Wait for the socialcalc-ai UI to be healthy
+        if: steps.fastapi.outputs.mode == 'full'
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8081/healthz > /dev/null 2>&1; then
+              echo "socialcalc-ai is ready after ${i} attempts"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "socialcalc-ai failed to start"
+          docker compose logs socialcalc-ai
+          exit 1
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -108,10 +141,10 @@ jobs:
           if [ "${{ steps.fastapi.outputs.mode }}" = "full" ]; then
             npx playwright test --reporter=list,html
           else
-            # every spec except interop-fastapi.spec.ts (needs the sidecar)
+            # every spec except interop-fastapi.spec.ts (needs the sidecar) and socialcalc-ai.spec.ts (needs the UI)
             specs=()
             for f in tests/e2e/*.spec.ts; do
-              [ "$f" = tests/e2e/interop-fastapi.spec.ts ] || specs+=("$f")
+              [ "$f" = tests/e2e/interop-fastapi.spec.ts ] || [ "$f" = tests/e2e/socialcalc-ai.spec.ts ] || specs+=("$f")
             done
             npx playwright test --reporter=list,html "${specs[@]}"
           fi
