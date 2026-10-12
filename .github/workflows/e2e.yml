@@ -16,9 +16,9 @@ jobs:
       # on the checkout directory name (socialcalc_backend_tornado) matching their default.
       COMPOSE_PROJECT_NAME: tornado_e2e
       # Source of the socialcalc-ai image (docker-compose.yml: SOCIALCALC_AI_CONTEXT). The Dockerfile lives on
-      # branch feature/docker of the contributor fork until it is merged; then switch these two to
-      # aspiringsdgs/socialcalc-ai @ main.
-      SOCIALCALC_AI_REPO: Brijesh-Thakkar/socialcalc-ai
+      # branch feature/docker of aspiringsdgs/socialcalc-ai (PR #4).
+      # TODO: switch SOCIALCALC_AI_REF to main once that PR (and PR #3 under it) is merged.
+      SOCIALCALC_AI_REPO: aspiringsdgs/socialcalc-ai
       SOCIALCALC_AI_REF: feature/docker
 
     steps:
