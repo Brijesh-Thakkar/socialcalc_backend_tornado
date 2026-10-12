@@ -12,7 +12,7 @@ Three AI clients exist and each expects a different server contract; no server i
 | Android invoice app | `POST /api/edit-invoice/session`, `/chat`, `GET\|DELETE /api/edit-invoice/session/{id}` → `{session_id, message, cell_updates, token_count}` |
 | invoice-agent web frontend | `POST /api/generate-invoice`, `/api/chat`, `/api/session/*` |
 
-Proposal: **one versioned API under `/api/v1/ai/` on Tornado**, same login as the existing `/api/*` routes, backed by **one internal `ai-gateway` service** that is the only thing holding LLM credentials. Old paths are served by thin shims (section 4) until each client moves.
+Proposal: **one versioned API under `/api/v1/ai/` on Tornado**, same login as the existing `/api/*` routes, backed by **one internal `ai-gateway` service** that is the only thing holding LLM credentials. Old paths can be served by thin shims (section 3) until each client moves. How the existing invoice-agent fits is **not decided** (section 6, Q7).
 
 ## 1. API
 
@@ -20,8 +20,8 @@ Common to all endpoints:
 
 - **Auth:** the signed `user` cookie used by `/api/login` and `/api/sheets` (`credentials: "include"`); native or non-browser clients may send `Authorization: Bearer <token>` once Tornado issues tokens (open question Q5). No cookie/token → `401`. The user id always comes from the verified session, never from the request.
 - **Format:** `Content-Type: application/json` (else `415`), UTF-8, errors always `{"error": {"code": "<machine_code>", "message": "<human text>", "request_id": "<id>"}}`. Every response carries `X-Request-Id`.
-- **Size limits (defaults, env-tunable):** request body 256 KB; `prompt` ≤ 4,000 chars; sheet text sent as context ≤ 200 KB; reply ≤ 8,000 output tokens. Larger → `413`.
-- **Rate / spend limits (defaults):** 20 requests/min and 200 requests/day per user, plus a monthly token budget per user (Q2). Exceeded → `429` with `Retry-After` (rate) or `403 quota_exceeded` (budget).
+- **Size limits (proposed defaults, to be confirmed; env-tunable):** request body 256 KB; `prompt` ≤ 4,000 chars; sheet text sent as context ≤ 200 KB; reply ≤ 8,000 output tokens. Larger → `413`.
+- **Rate / spend limits (proposed defaults, to be confirmed):** 20 requests/min and 200 requests/day per user, plus a monthly token budget per user (Q2). Exceeded → `429` with `Retry-After` (rate) or `403 quota_exceeded` (budget).
 - **Shared error codes:**
 
 | HTTP | `error.code` | Meaning |
@@ -111,7 +111,7 @@ Browser / app ──cookie──▶ nginx ──▶ Tornado  /api/v1/ai/*   (aut
 | | `POST /api/chat`, `/api/session/*` | `POST /api/v1/ai/chat`, `/api/v1/ai/conversations/*` | as above |
 | | `POST /api/generate` (`savestr`, `mode`) | `POST /api/v1/ai/invoice` | response is the MSC envelope, so the separate `convert-to-json` step goes away |
 
-Shims are plain Tornado handlers that only translate shapes, live in one file (`handlers/ai_compat.py`), carry a `Deprecation` response header, and are removed once the client has migrated. Proposal: honour the framework and Android contracts via shims, and drop the third (see Q4).
+Shims are plain Tornado handlers that only translate shapes, live in one file (`handlers/ai_compat.py`), carry a `Deprecation` response header, and are removed once the client has migrated. The framework and Android rows show shims as the low-effort path. For the invoice-agent frontend's contract, whether to shim or migrate the client is an open question (Q4).
 
 ## 4. Where socialcalc-mcp fits
 
@@ -142,12 +142,24 @@ The MCP server is run **stateless**: the workbook arrives with the request (or i
 1. **Provider and keys.** Which provider is the default (Bedrock, OpenAI, Anthropic, a local model)? Who owns the account and how do keys reach the deployment (env file, secret manager)? Is a local model required for offline or no-cost demos?
 2. **Budget per user.** What monthly token or cost cap per user and what daily request cap? Are there tiers (anonymous, free, paid)? What does the UI show at 80% and 100%?
 3. **Streaming or not.** Proposal: v1 is non-streaming JSON with a 60 s timeout; add SSE (`text/event-stream`) on `/chat` in a later minor version if the UX needs it. Is a first version without streaming acceptable?
-4. **Which legacy contracts to keep.** Shim the framework and Android contracts only, or also the invoice-agent frontend's?
+4. **Third contract (invoice-agent frontend: `/api/generate-invoice`, `/api/chat`, `/api/session/*`).** Not decided; options:
+   - **(a) Compat shim:** Tornado serves the old paths and translates to `/api/v1/ai/*`. The frontend needs no change now; cost: one more adapter to maintain and later remove, and the old shape stays alive longer. Rough effort: 1–2 days.
+   - **(b) Migrate the client:** change its service layer to the v1 endpoints and `credentials: "include"`. No legacy surface on the server; cost: needs a frontend change by its owners, and it must land before the old paths can go. Rough effort: 1–2 days on the client side.
+   - The same question applies to the framework and Android contracts, where the table above shows shims as a stop-gap.
 5. **Native/non-browser auth.** Cookie only, or issue bearer tokens for the Android app?
 6. **Conversation retention.** How long are chat histories stored, and may prompts be logged for debugging?
-7. **Where does `invoice-agent`'s template library and prompt material live,** inside the gateway (proposed) or as a separate service?
+7. **invoice-agent's role.** Two options, with no recommendation here. **This choice belongs to the mentor and the invoice-agent repo owner (Anirudh).**
 
-## 7. Suggested order
+   | | (a) Gateway takes over invoice-agent's role; its template library moves in | (b) invoice-agent is kept and hardened; the gateway calls it as one provider |
+   |---|---|---|
+   | What changes | The gateway implements generate/edit itself; the template library and syntax reference become gateway assets | invoice-agent stays a separate service behind the gateway; the gateway treats it like a provider (`AI_PROVIDER=invoice-agent`) |
+   | Pros | One AI service and one place for keys, limits and logs; one codebase to test; MCP tool-use loop can replace whole-sheet rewrites | Existing work and ownership are kept; smaller change for its owners; can ship sooner for invoices |
+   | Cons | Re-homes someone else's code and data; the owner's roadmap changes; a larger first milestone | Two AI services to run; keys and spend control are split unless invoice-agent also reads them from the gateway; its API must be brought in line with the requirements in section 5 first; whole-sheet generation stays |
+   | Effort (rough) | 3–5 days to port templates and prompts, plus the gateway work in section 7 | 4–6 days to bring it in line with section 5, plus a thin provider adapter in the gateway |
+
+   Under (b) the statement that the gateway is the only holder of LLM credentials would need to be relaxed or invoice-agent configured to call through the gateway.
+
+## 7. Suggested order (independent of Q7; the gateway work is the same either way)
 
 1. Gateway skeleton with the mock provider + Tornado handler, `/health`, 502/504 mapping, tests in CI (no keys).
 2. `/chat` and `/explain` with one real provider, spend limits, `/usage`.
