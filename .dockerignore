@@ -63,3 +63,7 @@ test-script.py
 local_storage/
 *.sqlite
 *.db
+
+# CI checkouts of the sidecar / UI sources (see .github/workflows/e2e.yml); not needed in the Tornado image
+fastapi-interop-src
+socialcalc-ai-src

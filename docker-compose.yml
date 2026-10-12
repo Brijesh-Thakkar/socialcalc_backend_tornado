@@ -195,6 +195,34 @@ services:
       start_period: 20s
     restart: unless-stopped
 
+  # ── socialcalc-ai: React/Ionic SocialCalc UI (static build behind an unprivileged nginx) ──
+  # Built from the socialcalc-ai repo: point SOCIALCALC_AI_CONTEXT at a checkout of
+  # aspiringsdgs/socialcalc-ai (needs the Dockerfile from branch feature/docker). Its nginx serves the UI
+  # and proxies /api/* to the Tornado nginx below (TORNADO_API_URL), so the browser sees ONE origin and the
+  # signed `user` cookie needs no CORS / SameSite=None. It gets its own host port because "/" belongs to the
+  # legacy Tornado UI. Backend down -> /api answers 502, too slow -> 504 (JSON); the container stays healthy.
+  # Cookies are not scoped by port, so the same login works on :8080 (legacy UI) and :${SOCIALCALC_AI_PORT:-8081}.
+  socialcalc-ai:
+    build:
+      context: ${SOCIALCALC_AI_CONTEXT:-../socialcalc-ai}
+    ports:
+      - "${SOCIALCALC_AI_PORT:-8081}:8080"
+    environment:
+      - TORNADO_API_URL=http://nginx:80
+      - TORNADO_CONNECT_TIMEOUT=${SOCIALCALC_AI_CONNECT_TIMEOUT:-5}
+      - TORNADO_READ_TIMEOUT=${SOCIALCALC_AI_READ_TIMEOUT:-60}
+    networks:
+      - app_network
+    depends_on:
+      - nginx
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+    restart: unless-stopped
+
   # ── Nginx reverse proxy (only service that binds a host port) ─────────────
   nginx:
     image: nginx:1.27-alpine
