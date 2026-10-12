@@ -1165,6 +1165,29 @@ curl -o /dev/null -w "%{http_code}" http://localhost:8080/static/screen.css  # �
 curl -I http://localhost:8080/login | grep Server                     # → TornadoServer/6.5.2
 ```
 
+### JSON Sheets API (`/api/*`)
+
+A JSON facade (`handlers/sheets_api.py`, registered in both `cloudmain-dev.py` and `cloudmain.py`) used by the socialcalc-ai frontend. It uses the same signed `user` cookie, login verification and `home/<user>/<name>` storage layout as the legacy HTML routes, so a sheet saved through either UI shows up in the other.
+
+| Method | Path | Body | Response |
+|--------|------|------|----------|
+| POST | `/api/login` | `{email, password}` | `{ok, user}` + `user` cookie; 401 on bad credentials |
+| POST | `/api/logout` | `{}` | `{ok}`; clears the cookie |
+| GET | `/api/sheets` | | `[{name, size, modified}]` (never creates directories) |
+| GET | `/api/sheets/<name>` | | `{name, data}` (`data` = raw save string) or 404 |
+| PUT | `/api/sheets/<name>` | `{data}` | 201 created / 200 updated; 500 if the storage write fails |
+| DELETE | `/api/sheets/<name>` | | 204 or 404 |
+
+All routes except login/logout return 401 JSON without the cookie. Errors are `{"error": "..."}`.
+
+- **Names**: 1–100 chars; no `/`, `\`, `..`, leading `.`, control characters, quotes or `<>`; `securestore` is reserved (400).
+- **Mutating routes** (POST/PUT/DELETE) require `Content-Type: application/json` (415 otherwise). With XSRF protection off, this forces a CORS preflight and blocks cross-site form posts.
+- **Size**: `data` over 5 MB → 413.
+- **CORS** applies to `/api/*` only: set `ALLOWED_ORIGINS` (comma-separated). The matching origin is echoed with `Access-Control-Allow-Credentials: true`; `*` is never used. Unset means same-origin only (use a dev proxy).
+- **Cookie** attributes for `/api/login` come from `COOKIE_SAMESITE` (default `Lax`) and `COOKIE_SECURE` (default `false`). A frontend on a different *site* (or a native Capacitor webview) needs `COOKIE_SAMESITE=None` and `COOKIE_SECURE=true` over HTTPS.
+- **Quota**: like the legacy `/save`, no save quota is enforced (the `/webapp` `savefile` 5-save quota is not applied). Open decision.
+- Tests: `venv/bin/python -m unittest tests.python.test_sheets_api -v` (no S3 needed) and `tests/e2e/sheets-api.spec.ts`.
+
 ### Load balancing
 
 ```bash
