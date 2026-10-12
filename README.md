@@ -1188,6 +1188,15 @@ All routes except login/logout return 401 JSON without the cookie. Errors are `{
 - **Quota**: like the legacy `/save`, no save quota is enforced (the `/webapp` `savefile` 5-save quota is not applied). Open decision.
 - Tests: `venv/bin/python -m unittest tests.python.test_sheets_api -v` (no S3 needed) and `tests/e2e/sheets-api.spec.ts`.
 
+### socialcalc-ai UI (docker-compose service `socialcalc-ai`)
+
+The React/Ionic SocialCalc UI ([aspiringsdgs/socialcalc-ai](https://github.com/aspiringsdgs/socialcalc-ai), `Dockerfile` on branch `feature/docker`) runs as its own compose service on **http://localhost:8081** (`SOCIALCALC_AI_PORT`); the legacy Tornado UI stays on nginx `:8080`.
+
+- Build context: `SOCIALCALC_AI_CONTEXT` (default `../socialcalc-ai`, a checkout of that repo).
+- Its nginx serves the app and proxies `/api/*` to this stack (`TORNADO_API_URL=http://nginx:80`), so the browser sees one origin and the JSON Sheets API cookie needs no CORS / `SameSite=None`. Cookies are not scoped by port, so one login works on `:8081` and `:8080` (same hostname).
+- Tornado down -> `/api` answers **502** `{"error":"backend unreachable"}`; no answer within `SOCIALCALC_AI_READ_TIMEOUT` (default 60 s) -> **504** `{"error":"backend timed out"}`. `GET /healthz` is answered by the UI container itself and is its Docker healthcheck.
+- No keys: the container takes only the variables above. Tests: `tests/e2e/socialcalc-ai.spec.ts`. In CI the source is checked out with `FASTAPI_REPO_TOKEN`; fork PRs skip only this service and its spec.
+
 ### Load balancing
 
 ```bash
