@@ -9,3 +9,5 @@ Real files used by `interop-fastapi.spec.ts` and `tests/interop/m1-curl.sh` (no 
 - `native_BusinessInvoices.sc`: a real 10-sheet SocialCalc save string (`webappTemplates/BusinessInvoices.msc.txt`).
 
 `SHA256SUMS` pins the bytes; the suite fails if a fixture changes.
+
+- `invoice.xlsx.sc` and `customers.csv.sc`: the SocialCalc save strings M1 produced from `invoice.xlsx` / `customers.csv` (contain `₹`, Devanagari text and "GST %"); used by `interop-node.spec.ts`. `native_BusinessInvoices.sc` is the 95 KB, 10-sheet native template.

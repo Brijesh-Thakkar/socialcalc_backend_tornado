@@ -1,0 +1,13 @@
+# CI override for fork PRs only (secrets, including FASTAPI_REPO_TOKEN, are not passed to them):
+# the node-interop sidecar source lives in a private repo and cannot be built, so the stack runs
+# without it. Removes only the node-interop dependency, so it stacks with
+# compose.no-fastapi-interop.yml. Same-repo PRs and pushes always run the full stack (see e2e.yml).
+services:
+  node-interop:
+    profiles: ["node-interop"]
+  app1:
+    depends_on:
+      node-interop: !reset null
+  app2:
+    depends_on:
+      node-interop: !reset null
