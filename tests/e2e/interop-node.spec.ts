@@ -103,10 +103,10 @@ test.describe.serial('M3 shared storage, both directions', () => {
       const viaTornado = await (await page.request.post('/insert', { form: { filename: c.name } })).json();
       expect(raw.data).toBe(viaTornado.data);
 
-      // Node's own /usersheet route returns the same sheet (parsed JSON, so compared semantically)
+      // Node's own /usersheet route returns the stored save string as-is, byte-equal
       const us = node('usersheet', testUser.email, c.name);
       expect(us.status).toBe(200);
-      expect(us.body).toEqual(JSON.parse(expected));
+      expect(us.body).toEqual({ data: expected });
     });
   }
 
