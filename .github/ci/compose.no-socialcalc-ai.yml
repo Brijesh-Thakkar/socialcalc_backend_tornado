@@ -1,0 +1,6 @@
+# CI override for fork PRs only (secrets, including FASTAPI_REPO_TOKEN, are not passed to them):
+# the socialcalc-ai source is checked out with that token, so the UI service is left out and the
+# rest of the stack runs unchanged. Same-repo PRs and pushes always run the full stack (see e2e.yml).
+services:
+  socialcalc-ai:
+    profiles: ["socialcalc-ai"]

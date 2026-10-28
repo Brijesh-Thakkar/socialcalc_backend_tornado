@@ -6,7 +6,8 @@
 #
 #
 
-import commands
+import os
+import subprocess
 import logging
 import os.path
 import re
@@ -30,7 +31,7 @@ from tornado.options import define, options
 # from util.amazon_ses import AmazonSES,EmailMessage
 
 from collections import namedtuple
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import dropbox
 import memcache
 
@@ -41,6 +42,8 @@ import base64
 
 channels = {}
 
+PDF_BUCKET = os.getenv("PDF_S3_BUCKET", "aspiring-pdf-files")
+
 define("port", default=8080, help="run on the given port", type=int)
 
 
@@ -50,7 +53,7 @@ class Application(tornado.web.Application):
             (r"/test", TestHandler)              
         ]
         settings = dict(
-            app_title=u"Aspiring Investments",
+            app_title="Aspiring Investments",
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             util_path=os.path.join(os.path.dirname(__file__), "util"),
@@ -82,9 +85,9 @@ class BaseHandler(tornado.web.RequestHandler):
 class TestHandler(BaseHandler):
 
     def exists_in_storage(self,fname):
-        return cloud.storage.storage.existsItem(fname, "aspiring-pdf-files")
+        return cloud.storage.storage.existsItem(fname, PDF_BUCKET)
     def get_from_storage(self,fname):
-        return cloud.storage.storage.getItem(fname, "aspiring-pdf-files")
+        return cloud.storage.storage.getItem(fname, PDF_BUCKET)
     def get_random_string(self,size):
         char_set = string.ascii_uppercase + string.digits
         return ''.join(random.sample(char_set,size))
@@ -124,7 +127,7 @@ class TestHandler(BaseHandler):
                 break;
         inpfile = fullfname+".html"
         s = data['content']
-        print s
+        print(s)
         f = open(inpfile,"w")
         f.write(s)
         f.close()
@@ -132,11 +135,11 @@ class TestHandler(BaseHandler):
         logging.info(outfile)
         logging.info(inpfile)
         cmdname = "/usr/local/bin/wkhtmltopdf.sh"
-        output = commands.getoutput("%s %s %s"%(cmdname, inpfile, outfile))
+        output = subprocess.getoutput("%s %s %s"%(cmdname, inpfile, outfile))
         pdfurl="http://"+self.request.host+"/htmltopdf?fname=%s"%fname
         self.finish(dict(pdfurl=pdfurl,result="ok"))     
 
-print "Testing cloudmain.py"
+print("Testing cloudmain.py")
 
 
 def main():

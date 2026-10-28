@@ -2,40 +2,45 @@
     <header id="myCarousel" class="carousel slide">
         <!-- Indicators -->
         <ol class="carousel-indicators">
-            <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
-            <li data-target="#myCarousel" data-slide-to="1"></li>
-            <li data-target="#myCarousel" data-slide-to="2"></li>
+            <li data-bs-target="#myCarousel" data-bs-slide-to="0" class="active"></li>
+            <li data-bs-target="#myCarousel" data-bs-slide-to="1"></li>
+            <li data-bs-target="#myCarousel" data-bs-slide-to="2"></li>
+            <li data-bs-target="#myCarousel" data-bs-slide-to="3"></li>
         </ol>
 
         <!-- Wrapper for slides -->
         <div class="carousel-inner">
-            <div class="item active">
-                <div class="fill" style="background-image:url('http://placehold.it/1900x1080&text=Business Apps');"></div>
+            <div class="carousel-item active">
+                <div class="fill" style="background-image:url('/web/static/images/portfolio-appbundles/companytools.png');background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#1a1a2e;"></div>
                 <div class="carousel-caption">
-                    <h2>Business</h2>
+                    <h2>Business Apps</h2>
                 </div>
             </div>
-            <div class="item">
-                <div class="fill"
-        style="background-image:url('http://placehold.it/1900x1080&text=Personal Finance Apps');"></div>
+            <div class="carousel-item">
+                <div class="fill" style="background-image:url('/web/static/images/portfolio-business/financialstat.png');background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#1a1a2e;"></div>
                 <div class="carousel-caption">
-                    <h2>Personal Finance</h2>
+                    <h2>Finance Apps</h2>
                 </div>
             </div>
-            <div class="item">
-                <div class="fill"
-        style="background-image:url('http://placehold.it/1900x1080&text=Lifestyle Apps');"></div>
+            <div class="carousel-item">
+                <div class="fill" style="background-image:url('/web/static/images/portfolio-health/bp.png');background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#1a1a2e;"></div>
                 <div class="carousel-caption">
-                    <h2>Lifestyle</h2>
+                    <h2>Health and Fitness</h2>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="fill" style="background-image:url('/web/static/images/portfolio-appbundles/personalfinanceassistant.png');background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#1a1a2e;"></div>
+                <div class="carousel-caption">
+                    <h2>Productivity</h2>
                 </div>
             </div>
         </div>
 
         <!-- Controls -->
-        <a class="left carousel-control" href="#myCarousel" data-slide="prev">
-            <span class="icon-prev"></span>
+        <a class="carousel-control-prev" href="#myCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
         </a>
-        <a class="right carousel-control" href="#myCarousel" data-slide="next">
-            <span class="icon-next"></span>
+        <a class="carousel-control-next" href="#myCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
         </a>
     </header>

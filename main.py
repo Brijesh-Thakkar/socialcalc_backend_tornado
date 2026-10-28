@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Aspiring Investments
 #
@@ -7,12 +7,40 @@
 #
 
 import os
-import commands
+import subprocess
 import logging
 import os.path
 import re
 import tornado.auth
-import tornado.database
+import sys
+import pymysql
+pymysql.install_as_MySQLdb()
+
+# Intercept and patch connect_timeout in PyMySQL connect to support torndb default of 0
+orig_connect = pymysql.connect
+def patched_connect(*args, **kwargs):
+    if kwargs.get("connect_timeout") in (0, None):
+        kwargs.pop("connect_timeout", None)
+    return orig_connect(*args, **kwargs)
+pymysql.connect = patched_connect
+
+# Mock MySQLdb.constants for torndb compatibility
+import MySQLdb.constants
+import pymysql.constants.FIELD_TYPE
+import pymysql.constants.FLAG
+sys.modules['MySQLdb.constants'].FIELD_TYPE = sys.modules['pymysql.constants.FIELD_TYPE']
+sys.modules['MySQLdb.constants'].FLAG = sys.modules['pymysql.constants.FLAG']
+
+# Patch copy.copy to return lists for converters to satisfy torndb import check
+import copy
+orig_copy = copy.copy
+copy.copy = lambda x: {k: [v] for k, v in orig_copy(x).items()} if isinstance(x, dict) and 253 in x else orig_copy(x)
+
+import torndb
+
+# Restore original copy and set native pymysql converters
+copy.copy = orig_copy
+torndb.CONVERSIONS = pymysql.converters.conversions
 import tornado.httpserver
 import tornado.ioloop
 import tornado.options
@@ -65,7 +93,7 @@ class Application(tornado.web.Application):
             (r"/tickerjson", TickerJsonHandler)              
         ]
         settings = dict(
-            app_title=u"Aspiring Investments",
+            app_title="Aspiring Investments",
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             util_path=os.path.join(os.path.dirname(__file__), "util"),
@@ -96,7 +124,7 @@ class Application(tornado.web.Application):
             self.amazonSes = None
             self.fromemail = ""
 
-        self.db = tornado.database.Connection(
+        self.db = torndb.Connection(
             host=options.mysql_host, database=options.mysql_database,
             user=options.mysql_user, password=options.mysql_password)
 
@@ -191,7 +219,7 @@ version:1.5
         fname = self.get_argument('pagename')
         cmdname = os.path.join(self.application.settings["util_path"],"msnparse.py")
         #logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s"%(cmdname,ticker))
+        sheetstr = subprocess.getoutput("python %s %s"%(cmdname,ticker))
         template = self.db.query("SELECT * FROM StockTemplates WHERE user = %s AND fname = %s",user,fname)
         #logging.info(sheetstr)
         #logging.info("---")
@@ -249,7 +277,7 @@ class MessageMixin:
     def wait_for_messages(self, callback, cursor=None):
         if cursor:
             index = 0
-            for i in xrange(len(self.cache)):
+            for i in range(len(self.cache)):
                 index = len(self.cache) - i - 1
                 if self.cache[index]["id"] == cursor: break
             recent = self.cache[index + 1:]
@@ -304,7 +332,6 @@ class MessageNewHandler(BaseHandler):
 # This is the long poller
 #
 class MessageUpdateHandler(BaseHandler):
-    @tornado.web.asynchronous
     def post(self):
         #create a new channel if id=1 and no channel exists
         cursor = self.get_argument("cursor", None)
@@ -313,7 +340,7 @@ class MessageUpdateHandler(BaseHandler):
         #logging.info("long poll id=%s,session=%s"%(id,session))
         channel = channels.get(session,None)
         if channel:
-            channel.wait_for_messages(self.async_callback(self.on_new_messages),
+            channel.wait_for_messages(self.on_new_messages,
                                       cursor=cursor)
 
     def on_new_messages(self, messages):
@@ -338,7 +365,7 @@ class MultiSheetHandler(BaseHandler):
         fname = self.get_argument('pagename')
         cmdname = os.path.join(self.application.settings["util_path"],"msnparse.py")
         logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s"%(cmdname,ticker))
+        sheetstr = subprocess.getoutput("python %s %s"%(cmdname,ticker))
         #template = self.db.query("SELECT * FROM StockTemplates WHERE user = %s AND fname = %s",user,fname)
         #logging.info(sheetstr)
         #logging.info("---")
@@ -380,7 +407,7 @@ class UploadTestHandler(BaseHandler):
         f.close()
         #logging.info("wrote "+fullfname)
         cmdname = "./excelinterop/phpexcel/socialcalc/import.php"
-        output = commands.getoutput("php %s %s"%(cmdname, fullfname))
+        output = subprocess.getoutput("php %s %s"%(cmdname, fullfname))
         #logging.info("output is "+output)
         i = output.index("$---$")
         wbook = output[i+5:]
@@ -429,7 +456,7 @@ class UploadHandler(BaseHandler):
         f.close()
         #logging.info("wrote "+fullfname)
         cmdname = "./excelinterop/phpexcel/socialcalc/import.php"
-        output = commands.getoutput("php %s %s"%(cmdname, fullfname))
+        output = subprocess.getoutput("php %s %s"%(cmdname, fullfname))
         #logging.info("output is "+output)
         i = output.index("$---$")
         wbook = output[i+5:]
@@ -477,7 +504,7 @@ class DownloadFileHandler(BaseHandler):
             inpfile = fullfname+".b"
         
             f = codecs.open(inpfile,encoding='utf-8',mode="w+")
-            s = unicode(self.get_argument('content'))
+            s = str(self.get_argument('content'))
             #logging.info(s)
             f.write(s)
             f.close()
@@ -485,7 +512,7 @@ class DownloadFileHandler(BaseHandler):
             logging.info(outfile)
             logging.info(inpfile)
             cmdname = "./excelinterop/phpexcel/socialcalc/export.php"
-            output = commands.getoutput("php %s %s %s %s"%(cmdname, inpfile, outfile, type))
+            output = subprocess.getoutput("php %s %s %s %s"%(cmdname, inpfile, outfile, type))
             logging.info(output)
             content = open(outfile).read()
         else:
@@ -511,7 +538,7 @@ class DownloadHandler(BaseHandler):
         logging.info(outfile)
         logging.info(inpfile)
         cmdname = "./excelinterop/phpexcel/socialcalc/export.php"
-        output = commands.getoutput("php %s %s %s %s"%(cmdname, inpfile, outfile, type))
+        output = subprocess.getoutput("php %s %s %s %s"%(cmdname, inpfile, outfile, type))
         logging.info(output)
         sessionfiledownloads["file"] = outfile
         sessionfiledownloads["type"] = type
@@ -550,7 +577,7 @@ class ImportHandler(BaseHandler):
             f.close()
             #logging.info("wrote "+fullfname)
             cmdname = "./excelinterop/phpexcel/socialcalc/import.php"
-            output = commands.getoutput("php %s %s"%(cmdname, fullfname))
+            output = subprocess.getoutput("php %s %s"%(cmdname, fullfname))
             #logging.info("output is "+output)
             i = output.index("$---$")
             wbook = output[i+5:]
@@ -595,7 +622,7 @@ class TickerJsonHandler(BaseHandler):
         logging.info("ticker is ",tick1,tick2,tick3)
         cmdname = os.path.join(self.application.settings["util_path"],"msnparse.py")
         logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s %s %s %s"%(cmdname,"json",tick1,tick2,tick3))
+        sheetstr = subprocess.getoutput("python %s %s %s %s %s"%(cmdname,"json",tick1,tick2,tick3))
         self.finish(dict(data=sheetstr,result="ok"))        
 
 
@@ -612,7 +639,7 @@ class TickerHandler(BaseHandler):
 
         cmdname = os.path.join(self.application.settings["util_path"],"msnparse.py")
         logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s %s"%(cmdname,"none",ticker))
+        sheetstr = subprocess.getoutput("python %s %s %s"%(cmdname,"none",ticker))
         #sheetstr = util.simpledb.getFromSimpleDb(ticker)
         tickdata = util.ystockquote.get_all(ticker)
         logging.info(tickdata)
@@ -630,7 +657,7 @@ class TenYearDataHandler(BaseHandler):
 
         cmdname = os.path.join(self.application.settings["util_path"],"tenyeardata.py")
         logging.info("cmd is %s"%cmdname)
-        sheetstr = commands.getoutput("python %s %s"%(cmdname,ticker))
+        sheetstr = subprocess.getoutput("python %s %s"%(cmdname,ticker))
         self.finish(dict(data=sheetstr,result="ok"))        
 
 class InsertHandler(BaseHandler):

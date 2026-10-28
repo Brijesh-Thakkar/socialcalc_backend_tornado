@@ -12,7 +12,7 @@ from cloud.storage import storage
 userdir = "users"
 userdirpath = ["home",userdir]
 
-               
+
 class User:
     def __init__(self, user="", password="", data=None):
         if data != None:
@@ -20,17 +20,16 @@ class User:
             return
         data = {}
         data["email"] = user
-        # salt and save the salted pw
         data["confirmed"] = True
-        data["pwhash"] = sha256_crypt.encrypt(password)
+        data["pwhash"] = sha256_crypt.hash(password)
         data["lastlogin"] = ""
         data["createdon"] = ""
         data["dongle"] = ""
-        self.data = data        
+        self.data = data
     def authenticate(self, password):
-        return sha256_crypt.verify(password, self.data["pwhash"])        
+        return sha256_crypt.verify(password, self.data["pwhash"])
     def set_password(self, newpassword):
-        self.data["pwhash"] = sha256_crypt.encrypt(newpassword)
+        self.data["pwhash"] = sha256_crypt.hash(newpassword)
     def set_confirmed(self):
         self.data["confirmed"] = True
     def get_confirmed(self):
@@ -46,14 +45,13 @@ class User:
     def get_dongle(self):
         return self.data["dongle"]
 
-    
+
 def get_user_path(email):
     path = userdirpath[:]
     path.append(email)
     return path
 
 def user_exists(email):
-    #check if the user exists
     path = get_user_path(email)
     fileobj = storage.getFile(path)
     if not fileobj:
@@ -72,9 +70,8 @@ def get_user(email):
 def set_user(userobj):
     path = get_user_path(userobj.get_user())
     storage.updateFile(path, userobj.get_data())
-    
+
 def create_user(email, password):
-    #create the user if it does not exist
     if user_exists(email):
         return
     # ensure ["home"] root dir exists before creating ["home","users"]
@@ -88,15 +85,15 @@ def create_user(email, password):
             return
     path = get_user_path(email)
     user = User(user=email, password=password)
-    if not storage.createFile(path, user.get_data()):
-        logging.error("create_user: failed to create file for user %s" % email)    
-    
+    ok = storage.createFile(path, user.get_data())
+    if not ok:
+        logging.error("create_user: failed to write user file for %s", email)
+
 def delete_user(email):
-    # delete the user
     if not user_exists(email):
         return
     path = get_user_path(email)
-    storage.deleteFile(path)    
+    storage.deleteFile(path)
 
 def authenticate_user(email, password):
     user = get_user(email)
@@ -107,7 +104,6 @@ def authenticate_user(email, password):
     return False
 
 def confirm_user(user):
-    # set the user to confirmed
     userobj = get_user(user)
     if userobj == None:
         return
@@ -115,7 +111,6 @@ def confirm_user(user):
     set_user(userobj)
 
 def update_password(user, password):
-    #  update the password
     userobj = get_user(user)
     if userobj == None:
         return
@@ -127,7 +122,7 @@ def get_user_dongle(user):
     if userobj == None:
         return None
     return userobj.get_dongle()
-        
+
 def set_user_dongle(user, dongle):
     userobj = get_user(user)
     if userobj == None:
@@ -136,11 +131,5 @@ def set_user_dongle(user, dongle):
     set_user(userobj)
 
 
-
-# if userdir does not exist, create it
-
-
 if "__name__" == "__main__":
-    #create_user("test","test")
     pass
-    

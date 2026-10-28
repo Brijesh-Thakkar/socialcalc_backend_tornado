@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% module Template("header-head.html") %}	
+
+<body>
+
+{% module Template("header-nav.html") %}	
+
+    
+
+         <div class="container">
+
+          <div class="loading">
+            <img class="centered" src="{{ static_url("static/spinner.gif") }}" />
+
+          </div><!--/loading-->
+
+            <br><br>
+
+            <div class="dropdown" id ="log-out">
+                <button class="btn btn-default dropdown-toggle float-end" type="button" id="menu1" data-bs-toggle="dropdown"> &nbsp;&nbsp;{{ argument['user'] }}
+                <span class="fa fa-user"></span></button>
+                <ul class="dropdown-menu dropdown-menu-right" role="menu" aria-labelledby="menu1">
+                  <!-- <li role="presentation"><a role="menuitem" tabindex="-1" href="#">HTML</a></li>
+                  <li role="presentation"><a role="menuitem" tabindex="-1" href="#">CSS</a></li>
+                  <li role="presentation"><a role="menuitem" tabindex="-1" href="#">JavaScript</a></li> -->
+                  <li role="presentation" class="divider"></li>
+                  <li role="presentation"><a role="menuitem" tabindex="-1" href="/web/logout">Log out</a></li>
+                </ul>
+              </div>
+
+
+
+            
+                 
+            
+   
+             <br><br>
+              <ul class="nav nav-tabs">
+                <li class="active"><a href="#apps">Purchased Apps</a></li>
+                <li><a href="/web/home/index.html">Available Apps</a></li>
+                
+              </ul>
+
+              <div id="apps">
+                <h2>Apps</h2>
+                {% set a = {} %}
+                {% for i in range(0,len(argument['no'])) %}
+                
+                {% set a[i] = argument['no'][i] %}
+                {% end %}
+
+                {% set k = 0 %}
+                  <ul class="list-group">
+                    {% for entry in argument['apps'] %}
+                    
+                    <li class="list-group-item"><span class="badge"><a class="new" href="/web/display" onclick="doedit('{{ entry }}');">{{ a[k] }}</a></span><a href="#" class="apps" onclick="launch('{{ entry }}');">{{ entry }}</a></li>
+                    {% set k += 1 %}
+                     {% end %}
+                     
+                  </ul>
+             
+              
+             </div>
+
+
+
+  
+         
+
+	
+	 
+	 
+	
+	
+	
+	
+	
+        <hr>
+
+        <!-- Footer -->
+	{% module Template("footer.html") %}
+      
+	
+    </div>
+    <!-- /.container -->
+
+    {% module Template("footer-scripts.html") %}	
+    
+
+</body>
+<script>
+    function doedit(p) {
+         
+
+        $.ajax(
+            {
+                type: 'POST',
+                url: '/web/display',
+                data: {'app':p},
+                success: function(data)
+                {
+                    //alert(data);         
+                }
+            });
+
+
+            
+    
+    }
+
+    function launch(appname){
+
+      $(".loading").show();
+
+      window.setTimeout(function(){
+
+      $(".loading").hide();
+      var link = '/web/runasweb?app='+appname+'&file=default';   
+       //alert(link);
+      window.open(link,"_self");  
+
+
+
+
+
+      },1000);
+
+ 
+   
+    }
+</script>
+<style type="text/css">
+.badge{
+color:white;
+background-color: #777;
+}
+
+a.new:link {
+    color: white;
+}
+/* visited link */
+a.new:visited {
+    color: white;
+}
+
+/* mouse over link */
+a.new:hover {
+    color: #d2f46c;
+}
+
+/* selected link */
+a.new:active {
+    color: white;
+}
+
+a.apps:visited {
+     
+}
+
+/* mouse over link */
+a.apps:hover {
+    color: black;
+}
+
+.loading {
+    display: none;
+    position: fixed;
+    top: 350px;
+    left: 50%;
+    margin-top: -96px;
+    margin-left: -96px;
+    background-color: #ccc;
+    opacity: .85;
+    border-radius: 25px;
+    width: 192px;
+    height: 192px;
+    z-index: 99999;
+}
+img.centered{
+    display: block;
+    margin-left: auto;
+    margin-right: auto  
+}
+
+</style>
+
+</html>

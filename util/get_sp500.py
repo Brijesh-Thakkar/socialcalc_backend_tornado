@@ -1,6 +1,6 @@
 
-import urllib2
-import BeautifulSoup
+import urllib.request, urllib.error, urllib.parse
+from . import BeautifulSoup
 
 wikiurl = "http://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 
@@ -13,6 +13,6 @@ rows = rows[1:]
 
 for row in rows:
     cols = row.findAll('td')
-    print cols[0].a.string
+    print(cols[0].a.string)
 
     

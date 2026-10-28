@@ -7,11 +7,11 @@ urlann = "http://www.advfn.com/p.php?pid=financials&btn=start_date&mode=annual_r
 urlannnostart = "http://www.advfn.com/p.php?pid=financials&btn=start_date&mode=annual_reports&symbol=%s"
 
 import mechanize
-from BeautifulSoup import BeautifulSoup
+from .BeautifulSoup import BeautifulSoup
 import time
 import zlib
 import os.path
-import analyzetenyear
+from . import analyzetenyear
 
 def saveTickerData(ticker, start, data):
     #gzip ?
@@ -75,30 +75,30 @@ def getTickerDataTenYear(ticker):
 def getTickerData(ticker):
     br = mechanize.Browser()
     start = 0
-    print "fetch "+ticker+" "+str(start)
+    print("fetch "+ticker+" "+str(start))
     br.open(urlann%(ticker,start))
     response = br.response()
     data = response.read()
     saveTickerData(ticker, start, data)
     start = start + 5
     #delay some time
-    print "sleeping.."
+    print("sleeping..")
     time.sleep(5)
     soup = BeautifulSoup(data)
     selected = soup.findAll('select',attrs={"id":"start_dateid"})
     #print len(selected)
     #print selected
     options = selected[0].findAll('option')
-    print options
+    print(options)
     years = len(options)
-    print "years = "+str(years)
+    print("years = "+str(years))
     while start < years:
-        print "fetch "+ticker+" "+str(start)
+        print("fetch "+ticker+" "+str(start))
         br.open(urlann%(ticker,start))
         response = br.response()
         data = response.read()
         saveTickerData(ticker, start, data)
-        print "sleeping.."
+        print("sleeping..")
         time.sleep(5)
         start = start + 5
 
@@ -120,27 +120,27 @@ badlist = {"SPE":"","GRR":""}
 
 def getTickers():
     count = 0
-    for ticker in tickers.keys():
+    for ticker in list(tickers.keys()):
         count = count + 1
         if count < 18:
             continue
         if ticker.find("^") != -1:
-            print ticker+" bad ticker"
+            print(ticker+" bad ticker")
             continue
         if badlist.get(ticker) != None:
             continue
         # check if the ticker has been loaded
         if fileExists(ticker):
-            print ticker+" exists.."
+            print(ticker+" exists..")
         else:
             try:
                 getTickerData(ticker)
                 analyzetenyear.analyzeTicker(ticker)
             except:
-                print "Exception.."
+                print("Exception..")
                 badlist[ticker] = ticker
                 time.sleep(8)
-        print str(count)+"/"+str(len(tickers))
+        print(str(count)+"/"+str(len(tickers)))
 
 if __name__ == "__main__":
     #import sys

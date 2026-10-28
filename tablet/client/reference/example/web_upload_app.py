@@ -1,11 +1,11 @@
-import BaseHTTPServer
+import http.server
 import cgi
 import inspect
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 import sys
 
-from Cookie import SimpleCookie
+from http.cookies import SimpleCookie
 from dropbox import session, client
 
 # XXX Fill in your consumer key and secret below
@@ -25,7 +25,7 @@ def get_client(access_token):
     sess.set_token(access_token.key, access_token.secret)
     return client.DropboxClient(sess)
 
-class ExampleHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class ExampleHandler(http.server.BaseHTTPRequestHandler):
     def index_page(self):
         sess = get_session()
         request_token = sess.obtain_request_token()
@@ -72,7 +72,7 @@ Upload a file!<br/>
             result = db.put_file('/' + file.filename, file.file)
 
             dest_path = result['path']
-            url_args = urllib.urlencode({'dest_path': dest_path})
+            url_args = urllib.parse.urlencode({'dest_path': dest_path})
             return self.redirect("/success?" + url_args)
 
     def success_page(self, dest_path=None):
@@ -118,7 +118,7 @@ Upload a file!<br/>
                 self.send_error(500, err)
                 return
 
-            parsed = urlparse.urlparse(self.path)
+            parsed = urllib.parse.urlparse(self.path)
             route = parsed.path[1:] or 'index'
             args = dict(cgi.parse_qsl(parsed.query))
             page = getattr(self, route + '_page', None)
@@ -128,7 +128,7 @@ Upload a file!<br/>
                 return
 
             page_args = inspect.getargspec(page)[0]
-            for k in args.keys():
+            for k in list(args.keys()):
                 if k not in page_args:
                     del args[k]
 
@@ -151,11 +151,11 @@ def main():
     if APP_KEY == '' or APP_SECRET == '':
         exit("You need to set your APP_KEY and APP_SECRET!")
     if len(sys.argv) == 1:
-        print "usage: python web_example.py [PORT]"
+        print("usage: python web_example.py [PORT]")
 
     port = sys.argv[1] if len(sys.argv) > 1 else "8000"
-    print "Browse to http://localhost:%s to try this app." % port
-    BaseHTTPServer.test(ExampleHandler, BaseHTTPServer.HTTPServer)
+    print("Browse to http://localhost:%s to try this app." % port)
+    http.server.test(ExampleHandler, http.server.HTTPServer)
 
 if __name__ == '__main__':
     main()

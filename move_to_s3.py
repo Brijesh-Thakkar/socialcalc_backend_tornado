@@ -5,7 +5,7 @@ import time
 import cloud.storage.storage
 
 html_bucket = "aspiring-html-files"
-pdf_bucket = "aspiring-pdf-files"
+pdf_bucket = os.getenv("PDF_S3_BUCKET", "aspiring-pdf-files")
 pdf_path = "/home/ubuntu/tmp/htmltopdf"
 
 def sorted_ls(path):
@@ -34,18 +34,18 @@ def move_files_to_s3():
         else:
             count = count+1
             continue
-        print fname, fnameid, count,len(files), os.path.getsize(fname), bucket
+        print(fname, fnameid, count,len(files), os.path.getsize(fname), bucket)
         if not cloud.storage.storage.existsItem(fnameid, pdf_bucket):
-            print "moving"
+            print("moving")
             move_to_s3(fname, fnameid, bucket)
             time.sleep(1)
             count = count + 1
         else:
-            print "exists, breaking"
+            print("exists, breaking")
             break
 
 def usage():
-    print "usage: move_to_s3 filename"
+    print("usage: move_to_s3 filename")
     exit()
 
 if __name__ == "__main__":

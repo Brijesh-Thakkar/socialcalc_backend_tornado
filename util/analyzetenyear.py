@@ -1,6 +1,6 @@
 
 import mechanize
-from BeautifulSoup import BeautifulSoup
+from .BeautifulSoup import BeautifulSoup
 import time
 import zlib
 import os.path
@@ -9,7 +9,7 @@ import datetime
 
 def readTickerData(ticker,start):
     fname = "./annualdata/"+ticker+"-"+str(start)+".z"
-    print "reading "+fname
+    print("reading "+fname)
     f = open(fname,"rb")
     data = f.read()
     f.close()
@@ -19,17 +19,17 @@ def analyzeData(data):
     soup = BeautifulSoup(data)
     tables = soup.findAll('table',attrs={"width":"705"})
     rows = tables[0].findAll('tr')
-    print len(rows)
+    print(len(rows))
     count = 0
     for row in rows:
         cols = row.findAll('td')
         #print len(cols)
         for col in cols:
             if col.string != None:
-                print col.string+",",
+                print(col.string+",", end=' ')
                 #break
         count = count+1
-        print ""
+        print("")
 
 
 def getRows(data):
@@ -64,7 +64,7 @@ def printYears(data):
         cols = getCol(rows,i)
         if cols != None and len(cols) > 10:
             #print cols
-            print len(cols),cols['year end date']
+            print(len(cols),cols['year end date'])
 
 ticker10yearData = {}
 
@@ -84,7 +84,7 @@ def stuffData(data):
 
 def getYearOrder():
     year = datetime.date.today().year
-    return range(year,year-12,-1)
+    return list(range(year,year-12,-1))
 
 def getPrintOrder():
     data = open("./util/order.txt").read()
@@ -138,17 +138,17 @@ def printFormattedData():
                 pass
         rownum = rownum+1
     colstr = savetemplate1+"\\n"+colstr+'"'+savetemplate2
-    print colstr
+    print(colstr)
     return colstr
             
     
 def getStuffedData():
-    for keys in ticker10yearData.keys():
-        print keys
+    for keys in list(ticker10yearData.keys()):
+        print(keys)
 
 def analyzeTicker(ticker):
     start = 0
-    print ticker,"-----"
+    print(ticker,"-----")
     while fileExists(ticker, start):
         data = readTickerData(ticker, start)
         analyzeData(data)
@@ -159,23 +159,23 @@ def analyzeTicker(ticker):
             cols = getCol(rows,i)
             if cols != None and len(cols) > 10:
                 #print cols
-                print len(cols),cols['year end date']
+                print(len(cols),cols['year end date'])
         start = start + 5
         
 
 
 def analyzeAllTickers():
-    for ticker in tickers.keys():
+    for ticker in list(tickers.keys()):
         try:
             analyzeTicker(ticker)
         except:
-            print "Exception"
+            print("Exception")
 
 tickers = {}
 
 
 def loadTickers():            
-    print "loading tickers..."
+    print("loading tickers...")
     data = open("./nasdaq.txt").read()
     datalist = data.split("\n")
     #print len(datalist)

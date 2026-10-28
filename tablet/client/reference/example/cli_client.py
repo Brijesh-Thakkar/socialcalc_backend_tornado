@@ -22,9 +22,9 @@ def command(login_required=True):
 
             try:
                 return f(self, *args)
-            except TypeError, e:
+            except TypeError as e:
                 self.stdout.write(str(e) + '\n')
-            except rest.ErrorResponse, e:
+            except rest.ErrorResponse as e:
                 msg = e.user_error_msg or str(e)
                 self.stdout.write('Error: %s\n' % msg)
 
@@ -66,7 +66,7 @@ class DropboxTerm(cmd.Cmd):
         """log in to a Dropbox account"""
         try:
             self.sess.link()
-        except rest.ErrorResponse, e:
+        except rest.ErrorResponse as e:
             self.stdout.write('Error: %s\n' % str(e))
 
     @command()
@@ -120,7 +120,7 @@ class DropboxTerm(cmd.Cmd):
         to_file = open(os.path.expanduser(to_path), "wb")
 
         f, metadata = self.api_client.get_file_and_metadata(self.current_path + "/" + from_path)
-        print 'Metadata:', metadata
+        print('Metadata:', metadata)
         to_file.write(f.read())
 
     @command()
@@ -136,7 +136,7 @@ class DropboxTerm(cmd.Cmd):
 
         f, metadata = self.api_client.thumbnail_and_metadata(
                 self.current_path + "/" + from_path, size, format)
-        print 'Metadata:', metadata
+        print('Metadata:', metadata)
         to_file.write(f.read())
 
     @command()
@@ -197,7 +197,7 @@ class StoredSession(session.DropboxSession):
         try:
             stored_creds = open(self.TOKEN_FILE).read()
             self.set_token(*stored_creds.split('|'))
-            print "[loaded access token]"
+            print("[loaded access token]")
         except IOError:
             pass # don't worry if it's not there
 
@@ -212,9 +212,9 @@ class StoredSession(session.DropboxSession):
     def link(self):
         request_token = self.obtain_request_token()
         url = self.build_authorize_url(request_token)
-        print "url:", url
-        print "Please authorize in the browser. After you're done, press enter."
-        raw_input()
+        print("url:", url)
+        print("Please authorize in the browser. After you're done, press enter.")
+        input()
 
         self.obtain_access_token(request_token)
         self.write_creds(self.token)

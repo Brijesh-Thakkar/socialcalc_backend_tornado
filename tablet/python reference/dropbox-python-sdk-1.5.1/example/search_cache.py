@@ -20,6 +20,7 @@
 
 import dropbox
 import sys, os, json
+import importlib
 
 APP_KEY = ''
 APP_SECRET = ''
@@ -29,7 +30,7 @@ STATE_FILE = 'search_cache.json'
 
 def main():
     # Lets us print unicode characters through sys.stdout/stderr
-    reload(sys).setdefaultencoding('utf8')
+    importlib.reload(sys).setdefaultencoding('utf8')
 
     if APP_KEY == '' or APP_SECRET == '':
         sys.stderr.write("ERROR: Set your APP_KEY and APP_SECRET at the top of %r.\n" % __file__)
@@ -75,7 +76,7 @@ def command_link(args):
     sys.stdout.write("1. Go to: %s\n" % url)
     sys.stdout.write("2. Authorize this app.\n")
     sys.stdout.write("After you're done, press ENTER.\n")
-    raw_input()
+    input()
 
     # This will fail if the user didn't visit the above URL and hit 'Allow'
     access_token = sess.obtain_access_token(request_token)
@@ -181,13 +182,13 @@ class Node(object):
     @staticmethod
     def to_json_content(content):
         if isinstance(content, dict):
-            return dict([(name_lc, node.to_json()) for name_lc, node in content.iteritems()])
+            return dict([(name_lc, node.to_json()) for name_lc, node in content.items()])
         else:
             return content
     @staticmethod
     def from_json_content(jcontent):
         if isinstance(jcontent, dict):
-            return dict([(name_lc, Node.from_json(jnode)) for name_lc, jnode in jcontent.iteritems()])
+            return dict([(name_lc, Node.from_json(jnode)) for name_lc, jnode in jcontent.items()])
         else:
             return jcontent
 
@@ -246,7 +247,7 @@ def split_path(path):
 # Recursively search 'tree' for files that contain the string in 'term'.
 # Print out any matches.
 def search_tree(results, tree, term):
-    for name_lc, node in tree.iteritems():
+    for name_lc, node in tree.items():
         path = node.path
         if (path is not None) and term in path:
             if node.is_folder():

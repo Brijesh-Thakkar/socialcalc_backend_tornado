@@ -4,7 +4,7 @@
 # 
 #
 
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import time
 import zlib
 import os
@@ -46,11 +46,11 @@ def delayedUrlRead(url, sleeptime=2.0):
     lastamznread = current
     #print "reading-%s"%url
     try:
-        data =  urllib2.urlopen(url).read()
+        data =  urllib.request.urlopen(url).read()
     except:
         time.sleep(sleeptime)
         lastamznread = time.time()
-        data =  urllib2.urlopen(url).read()        
+        data =  urllib.request.urlopen(url).read()        
     return data
 
 def getUrl(url, allowcache = True):
@@ -69,9 +69,9 @@ def demo():
     data = getUrl(industrybase)
     data1 = getUrl(industrybase)
     if data == data1:
-        print "test ok"
+        print("test ok")
     else:
-        print "test fail %d %d"%(len(data),len(data1))
+        print("test fail %d %d"%(len(data),len(data1)))
     
 if __name__ == "__main__":
     demo()

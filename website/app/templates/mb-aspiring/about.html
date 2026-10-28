@@ -17,9 +17,9 @@
                     <small></small>
                 </h1>
                 <ol class="breadcrumb">
-                    <li><a href="index.html">Home</a>
+                    <li class="breadcrumb-item"><a href="/web/home/index.html">Home</a>
                     </li>
-                    <li class="active">About</li>
+                    <li class="breadcrumb-item active">About</li>
                 </ol>
             </div>
         </div>
@@ -28,18 +28,18 @@
        <!-- Intro Content -->
         <div class="row">
             <div class="col-md-6">
-                <img class="img-responsive" src="http://placehold.it/750x450" alt="">
+                <img class="img-fluid img-hover" src="{{ static_url("images/about.png") }}" alt="">
             </div>
             <div class="col-md-6">
                 <h2>About Aspiring Apps</h2>
-                <p>Para 1.</p>
-                <p>Para 2!</p>
-                <p>Para 3</p>
+                <p>We build software products on tablet devices , phones and desktop browsers that are elegant in design and simple to use for our customers. We identify needs and provide solutions.</p>
+                <p>We are a young start-up with a simple goal help enterprises and users to learn and manage their investments, resources and time productively, which could enable them to achieve their short term and long term vision and goals.</p>
+                <p>We also develop custom business and finance applications</p>
             </div>
         </div>
         <!-- /.row -->
 
-	{% comment comment this out for now module Template("about-team.html") %}
+	<!--{% comment comment this out for now module Template("about-team.html") %}-->
 
 		
 	{% module Template("about-customers.html") %}	

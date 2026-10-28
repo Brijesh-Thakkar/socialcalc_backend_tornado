@@ -1,0 +1,293 @@
+id,name,city,amount,note,joined
+1,Ramesh Kumar,Chennai,19891.58,"₹1,25,000 total",2025-01-02
+2,Zoë Müller,दिल्ली,44925.96,"line1
+line2",2025-01-03
+3,Ramesh Kumar,दिल्ली,69816.26,"line1
+line2",2025-01-04
+4,अनिल गुप्ता,दिल्ली,21539.01,"line1
+line2",2025-01-05
+5,Sunita Sharma,"Mumbai, MH",37998.55,"line1
+line2",2025-01-06
+6,José Álvarez,Chennai,26459.18,,2025-01-07
+7,田中太郎,Chennai,12491.24,"said ""ok""",2025-01-08
+8,Sunita Sharma,Chennai,29324.60,"₹1,25,000 total",2025-01-09
+9,José Álvarez,Chennai,19236.74,,2025-01-10
+10,Ramesh Kumar,दिल्ली,77308.33,,2025-01-11
+11,"Priya ""Pri"" Nair","Mumbai, MH",38018.44,"said ""ok""",2025-01-12
+12,José Álvarez,दिल्ली,37024.02,"paid ₹500, rest due",2025-01-13
+13,अनिल गुप्ता,"Mumbai, MH",60916.40,"paid ₹500, rest due",2025-01-14
+14,"Priya ""Pri"" Nair",दिल्ली,46230.94,"line1
+line2",2025-01-15
+15,"Priya ""Pri"" Nair",Pune,84285.92,,2025-01-16
+16,"Priya ""Pri"" Nair","Mumbai, MH",80505.72,"said ""ok""",2025-01-17
+17,अनिल गुप्ता,"Mumbai, MH",,"paid ₹500, rest due",2025-01-18
+18,José Álvarez,दिल्ली,65546.66,"said ""ok""",2025-01-19
+19,田中太郎,दिल्ली,26495.10,"paid ₹500, rest due",2025-01-20
+20,अनिल गुप्ता,Chennai,42848.67,"₹1,25,000 total",2025-01-21
+21,Zoë Müller,Pune,21939.66,"paid ₹500, rest due",2025-01-22
+22,田中太郎,"Mumbai, MH",75579.90,,2025-01-23
+23,"Aarav, Jr.",दिल्ली,79209.22,"said ""ok""",2025-01-24
+24,Sunita Sharma,,38167.73,"said ""ok""",2025-01-25
+25,अनिल गुप्ता,Chennai,86078.50,,2025-01-26
+26,Sunita Sharma,Chennai,75089.52,"line1
+line2",2025-01-27
+27,Sunita Sharma,Pune,43481.74,"said ""ok""",2025-01-28
+28,Ramesh Kumar,Pune,97188.12,"paid ₹500, rest due",2025-01-29
+29,Sunita Sharma,Pune,84167.68,"₹1,25,000 total",2025-01-30
+30,"Priya ""Pri"" Nair",दिल्ली,37397.27,"paid ₹500, rest due",2025-01-31
+31,Ramesh Kumar,Chennai,32422.04,,2025-02-01
+32,Sunita Sharma,Pune,87872.52,"line1
+line2",2025-02-02
+33,"Priya ""Pri"" Nair","Mumbai, MH",24094.51,"₹1,25,000 total",2025-02-03
+34,Sunita Sharma,"Mumbai, MH",,"said ""ok""",2025-02-04
+35,Sunita Sharma,Chennai,76585.02,"paid ₹500, rest due",2025-02-05
+36,田中太郎,Chennai,16520.88,"₹1,25,000 total",2025-02-06
+37,Zoë Müller,दिल्ली,92891.13,"paid ₹500, rest due",2025-02-07
+38,अनिल गुप्ता,,99513.99,"line1
+line2",2025-02-08
+39,田中太郎,Chennai,45153.65,"paid ₹500, rest due",2025-02-09
+40,"Priya ""Pri"" Nair","Mumbai, MH",33814.84,"₹1,25,000 total",2025-02-10
+41,"Priya ""Pri"" Nair",Chennai,22029.32,,2025-02-11
+42,Ramesh Kumar,दिल्ली,6749.29,,2025-02-12
+43,José Álvarez,"Mumbai, MH",51419.96,"line1
+line2",2025-02-13
+44,田中太郎,दिल्ली,53927.46,"₹1,25,000 total",2025-02-14
+45,田中太郎,दिल्ली,78463.31,"said ""ok""",2025-02-15
+46,"Priya ""Pri"" Nair","Mumbai, MH",9702.02,"said ""ok""",2025-02-16
+47,José Álvarez,,41115.71,,2025-02-17
+48,Sunita Sharma,"Mumbai, MH",40267.70,"line1
+line2",2025-02-18
+49,Sunita Sharma,दिल्ली,19166.90,"₹1,25,000 total",2025-02-19
+50,田中太郎,दिल्ली,42193.52,"line1
+line2",2025-02-20
+51,田中太郎,दिल्ली,,,2025-02-21
+52,田中太郎,Chennai,9799.80,"₹1,25,000 total",2025-02-22
+53,Ramesh Kumar,"Mumbai, MH",92636.51,"paid ₹500, rest due",2025-02-23
+54,"Aarav, Jr.",,48568.77,"paid ₹500, rest due",2025-02-24
+55,Zoë Müller,"Mumbai, MH",16471.90,,2025-02-25
+56,Zoë Müller,Pune,92651.62,"said ""ok""",2025-02-26
+57,अनिल गुप्ता,,69661.49,"₹1,25,000 total",2025-02-27
+58,田中太郎,दिल्ली,18997.70,"paid ₹500, rest due",2025-02-28
+59,Ramesh Kumar,Chennai,73575.62,,2025-03-01
+60,José Álvarez,"Mumbai, MH",5023.68,"said ""ok""",2025-03-02
+61,"Aarav, Jr.","Mumbai, MH",96077.32,,2025-03-03
+62,"Aarav, Jr.","Mumbai, MH",59506.97,"paid ₹500, rest due",2025-03-04
+63,Zoë Müller,"Mumbai, MH",94159.26,"₹1,25,000 total",2025-03-05
+64,"Priya ""Pri"" Nair",Chennai,59455.38,"₹1,25,000 total",2025-03-06
+65,Sunita Sharma,,65740.09,"₹1,25,000 total",2025-03-07
+66,José Álvarez,Pune,20433.67,"line1
+line2",2025-03-08
+67,"Priya ""Pri"" Nair",Pune,39584.23,"line1
+line2",2025-03-09
+68,田中太郎,Pune,,,2025-03-10
+69,Ramesh Kumar,,62119.09,"₹1,25,000 total",2025-03-11
+70,Sunita Sharma,"Mumbai, MH",53767.53,"₹1,25,000 total",2025-03-12
+71,अनिल गुप्ता,दिल्ली,93325.67,,2025-03-13
+72,"Priya ""Pri"" Nair",Pune,28505.60,"said ""ok""",2025-03-14
+73,अनिल गुप्ता,Chennai,98384.51,"₹1,25,000 total",2025-03-15
+74,Ramesh Kumar,Chennai,29944.58,,2025-03-16
+75,"Aarav, Jr.",Pune,11551.60,,2025-03-17
+76,"Aarav, Jr.",Pune,28182.53,"paid ₹500, rest due",2025-03-18
+77,José Álvarez,दिल्ली,68752.15,"line1
+line2",2025-03-19
+78,田中太郎,Pune,90533.69,,2025-03-20
+79,Sunita Sharma,,82935.69,,2025-03-21
+80,Ramesh Kumar,Pune,77113.44,"line1
+line2",2025-03-22
+81,"Aarav, Jr.",,55171.97,"said ""ok""",2025-03-23
+82,Ramesh Kumar,"Mumbai, MH",7533.56,"paid ₹500, rest due",2025-03-24
+83,Ramesh Kumar,Pune,58254.55,"paid ₹500, rest due",2025-03-25
+84,Zoë Müller,दिल्ली,4192.43,"line1
+line2",2025-03-26
+85,Ramesh Kumar,Pune,,"paid ₹500, rest due",2025-03-27
+86,"Priya ""Pri"" Nair","Mumbai, MH",35373.97,"₹1,25,000 total",2025-03-28
+87,Zoë Müller,Chennai,74949.52,"paid ₹500, rest due",2025-03-29
+88,"Aarav, Jr.",दिल्ली,88141.92,,2025-03-30
+89,"Aarav, Jr.",Pune,78240.04,"said ""ok""",2025-03-31
+90,"Priya ""Pri"" Nair",Pune,15928.03,,2025-04-01
+91,Zoë Müller,"Mumbai, MH",85859.88,"paid ₹500, rest due",2025-04-02
+92,"Priya ""Pri"" Nair",,34972.00,"paid ₹500, rest due",2025-04-03
+93,"Priya ""Pri"" Nair","Mumbai, MH",66006.06,"said ""ok""",2025-04-04
+94,José Álvarez,Pune,86435.79,"line1
+line2",2025-04-05
+95,José Álvarez,Chennai,39973.44,"₹1,25,000 total",2025-04-06
+96,José Álvarez,"Mumbai, MH",11542.91,"line1
+line2",2025-04-07
+97,"Aarav, Jr.",Chennai,96252.84,"line1
+line2",2025-04-08
+98,Ramesh Kumar,"Mumbai, MH",59660.56,"line1
+line2",2025-04-09
+99,José Álvarez,,60624.22,"₹1,25,000 total",2025-04-10
+100,Sunita Sharma,,89950.58,"paid ₹500, rest due",2025-04-11
+101,अनिल गुप्ता,"Mumbai, MH",70880.73,,2025-04-12
+102,"Priya ""Pri"" Nair",Pune,,"said ""ok""",2025-04-13
+103,Sunita Sharma,Pune,62318.69,,2025-04-14
+104,अनिल गुप्ता,Chennai,30935.06,"said ""ok""",2025-04-15
+105,José Álvarez,,69723.17,"₹1,25,000 total",2025-04-16
+106,"Aarav, Jr.",दिल्ली,42050.01,"said ""ok""",2025-04-17
+107,"Aarav, Jr.",Chennai,56914.27,"said ""ok""",2025-04-18
+108,Ramesh Kumar,Pune,28698.22,"said ""ok""",2025-04-19
+109,José Álvarez,,44183.74,"paid ₹500, rest due",2025-04-20
+110,田中太郎,दिल्ली,65887.83,"line1
+line2",2025-04-21
+111,José Álvarez,"Mumbai, MH",81843.34,"paid ₹500, rest due",2025-04-22
+112,अनिल गुप्ता,दिल्ली,80657.42,"paid ₹500, rest due",2025-04-23
+113,Ramesh Kumar,"Mumbai, MH",24491.56,"said ""ok""",2025-04-24
+114,Sunita Sharma,,41449.54,"₹1,25,000 total",2025-04-25
+115,"Priya ""Pri"" Nair",,49442.28,"paid ₹500, rest due",2025-04-26
+116,"Aarav, Jr.","Mumbai, MH",89266.16,,2025-04-27
+117,Zoë Müller,दिल्ली,17596.73,"₹1,25,000 total",2025-04-28
+118,田中太郎,"Mumbai, MH",55744.45,,2025-04-29
+119,田中太郎,दिल्ली,,"said ""ok""",2025-04-30
+120,José Álvarez,,61268.49,"₹1,25,000 total",2025-05-01
+121,Zoë Müller,Chennai,44596.46,"paid ₹500, rest due",2025-05-02
+122,田中太郎,,25926.30,"paid ₹500, rest due",2025-05-03
+123,अनिल गुप्ता,Chennai,48464.37,"paid ₹500, rest due",2025-05-04
+124,अनिल गुप्ता,,7757.48,"line1
+line2",2025-05-05
+125,"Priya ""Pri"" Nair",Pune,33591.06,"₹1,25,000 total",2025-05-06
+126,Sunita Sharma,दिल्ली,15091.41,"said ""ok""",2025-05-07
+127,"Aarav, Jr.",दिल्ली,6432.18,"said ""ok""",2025-05-08
+128,José Álvarez,Chennai,46597.31,,2025-05-09
+129,"Priya ""Pri"" Nair",,38953.40,"₹1,25,000 total",2025-05-10
+130,Ramesh Kumar,Chennai,38043.92,,2025-05-11
+131,José Álvarez,Pune,75349.22,"said ""ok""",2025-05-12
+132,"Priya ""Pri"" Nair",,21949.75,"said ""ok""",2025-05-13
+133,田中太郎,"Mumbai, MH",38891.44,"said ""ok""",2025-05-14
+134,"Aarav, Jr.",,91954.05,"₹1,25,000 total",2025-05-15
+135,Ramesh Kumar,,59192.77,,2025-05-16
+136,Sunita Sharma,,,"paid ₹500, rest due",2025-05-17
+137,田中太郎,दिल्ली,5037.91,"said ""ok""",2025-05-18
+138,José Álvarez,दिल्ली,45474.93,"line1
+line2",2025-05-19
+139,Zoë Müller,Pune,75202.71,"said ""ok""",2025-05-20
+140,अनिल गुप्ता,"Mumbai, MH",47035.51,"₹1,25,000 total",2025-05-21
+141,Ramesh Kumar,Pune,22429.75,,2025-05-22
+142,Ramesh Kumar,"Mumbai, MH",94960.73,"paid ₹500, rest due",2025-05-23
+143,Ramesh Kumar,Chennai,15246.56,"paid ₹500, rest due",2025-05-24
+144,田中太郎,"Mumbai, MH",56400.75,"paid ₹500, rest due",2025-05-25
+145,田中太郎,Pune,76691.37,"paid ₹500, rest due",2025-05-26
+146,Sunita Sharma,दिल्ली,96471.47,,2025-05-27
+147,Ramesh Kumar,Pune,57583.34,"said ""ok""",2025-05-28
+148,Zoë Müller,दिल्ली,7608.81,"paid ₹500, rest due",2025-05-29
+149,Sunita Sharma,Pune,85029.97,"₹1,25,000 total",2025-05-30
+150,Sunita Sharma,Chennai,78264.93,"line1
+line2",2025-05-31
+151,Zoë Müller,Pune,6904.92,"line1
+line2",2025-06-01
+152,Ramesh Kumar,,82234.05,,2025-06-02
+153,Zoë Müller,Pune,,"said ""ok""",2025-06-03
+154,"Aarav, Jr.",,17621.76,"₹1,25,000 total",2025-06-04
+155,अनिल गुप्ता,Chennai,80821.03,"₹1,25,000 total",2025-06-05
+156,田中太郎,,43562.66,"₹1,25,000 total",2025-06-06
+157,अनिल गुप्ता,Pune,85171.95,,2025-06-07
+158,अनिल गुप्ता,,24393.66,"said ""ok""",2025-06-08
+159,Zoë Müller,Pune,2879.68,"line1
+line2",2025-06-09
+160,"Aarav, Jr.",,21219.65,"line1
+line2",2025-06-10
+161,José Álvarez,Pune,88032.31,"line1
+line2",2025-06-11
+162,Ramesh Kumar,Chennai,94805.83,,2025-06-12
+163,"Priya ""Pri"" Nair",,48862.41,"paid ₹500, rest due",2025-06-13
+164,田中太郎,,44822.53,,2025-06-14
+165,Sunita Sharma,Pune,22167.20,"paid ₹500, rest due",2025-06-15
+166,अनिल गुप्ता,Chennai,36907.99,"₹1,25,000 total",2025-06-16
+167,José Álvarez,,99662.18,"₹1,25,000 total",2025-06-17
+168,José Álvarez,Pune,70287.76,"line1
+line2",2025-06-18
+169,अनिल गुप्ता,Pune,23061.27,"paid ₹500, rest due",2025-06-19
+170,José Álvarez,"Mumbai, MH",,"₹1,25,000 total",2025-06-20
+171,"Aarav, Jr.",दिल्ली,21646.08,"said ""ok""",2025-06-21
+172,अनिल गुप्ता,Chennai,97659.96,"₹1,25,000 total",2025-06-22
+173,अनिल गुप्ता,"Mumbai, MH",83263.68,"line1
+line2",2025-06-23
+174,"Priya ""Pri"" Nair",Pune,17952.18,,2025-06-24
+175,"Aarav, Jr.",Pune,4561.07,,2025-06-25
+176,अनिल गुप्ता,दिल्ली,63789.95,"said ""ok""",2025-06-26
+177,Sunita Sharma,"Mumbai, MH",57410.11,"said ""ok""",2025-06-27
+178,田中太郎,,34076.85,,2025-06-28
+179,अनिल गुप्ता,,11417.46,,2025-06-29
+180,Zoë Müller,,7417.40,,2025-06-30
+181,"Aarav, Jr.",दिल्ली,81115.29,"line1
+line2",2025-07-01
+182,Sunita Sharma,दिल्ली,11853.85,"said ""ok""",2025-07-02
+183,"Priya ""Pri"" Nair",Chennai,38043.62,"said ""ok""",2025-07-03
+184,अनिल गुप्ता,Chennai,99002.24,"line1
+line2",2025-07-04
+185,Ramesh Kumar,Chennai,96010.32,,2025-07-05
+186,"Priya ""Pri"" Nair",दिल्ली,26471.70,,2025-07-06
+187,"Aarav, Jr.",दिल्ली,,"paid ₹500, rest due",2025-07-07
+188,Sunita Sharma,दिल्ली,277.54,"said ""ok""",2025-07-08
+189,田中太郎,Pune,3273.63,"line1
+line2",2025-07-09
+190,अनिल गुप्ता,,7127.19,"paid ₹500, rest due",2025-07-10
+191,अनिल गुप्ता,Chennai,66121.03,"paid ₹500, rest due",2025-07-11
+192,Zoë Müller,"Mumbai, MH",54460.25,"paid ₹500, rest due",2025-07-12
+193,अनिल गुप्ता,दिल्ली,7150.20,"paid ₹500, rest due",2025-07-13
+194,अनिल गुप्ता,Chennai,74897.53,"₹1,25,000 total",2025-07-14
+195,अनिल गुप्ता,,12444.00,"line1
+line2",2025-07-15
+196,Zoë Müller,Pune,50051.71,"said ""ok""",2025-07-16
+197,田中太郎,"Mumbai, MH",59807.09,"said ""ok""",2025-07-17
+198,José Álvarez,Chennai,25044.04,,2025-07-18
+199,"Priya ""Pri"" Nair",Chennai,58715.83,,2025-07-19
+200,अनिल गुप्ता,Chennai,4032.72,"paid ₹500, rest due",2025-07-20
+201,田中太郎,Chennai,65153.78,"line1
+line2",2025-07-21
+202,"Aarav, Jr.",Chennai,43593.70,"said ""ok""",2025-07-22
+203,Sunita Sharma,,34802.28,"line1
+line2",2025-07-23
+204,José Álvarez,"Mumbai, MH",,"paid ₹500, rest due",2025-07-24
+205,José Álvarez,,69369.74,"line1
+line2",2025-07-25
+206,Zoë Müller,Chennai,3679.31,,2025-07-26
+207,José Álvarez,Pune,32333.82,"said ""ok""",2025-07-27
+208,Ramesh Kumar,Chennai,46202.55,,2025-07-28
+209,"Priya ""Pri"" Nair",Chennai,36183.96,"said ""ok""",2025-07-29
+210,田中太郎,"Mumbai, MH",20363.58,"₹1,25,000 total",2025-07-30
+211,"Aarav, Jr.",Pune,43816.79,"said ""ok""",2025-07-31
+212,Sunita Sharma,"Mumbai, MH",97313.98,"₹1,25,000 total",2025-08-01
+213,"Priya ""Pri"" Nair",दिल्ली,31081.60,,2025-08-02
+214,Zoë Müller,"Mumbai, MH",22477.59,,2025-08-03
+215,田中太郎,"Mumbai, MH",64773.84,"paid ₹500, rest due",2025-08-04
+216,田中太郎,Pune,50891.60,"line1
+line2",2025-08-05
+217,Zoë Müller,,98023.68,"paid ₹500, rest due",2025-08-06
+218,田中太郎,Chennai,14472.61,"paid ₹500, rest due",2025-08-07
+219,"Aarav, Jr.","Mumbai, MH",27631.70,"said ""ok""",2025-08-08
+220,José Álvarez,Chennai,26724.33,,2025-08-09
+221,अनिल गुप्ता,Pune,,"₹1,25,000 total",2025-08-10
+222,田中太郎,दिल्ली,44659.83,"said ""ok""",2025-08-11
+223,José Álvarez,Pune,55195.67,"₹1,25,000 total",2025-08-12
+224,Zoë Müller,,93284.96,"paid ₹500, rest due",2025-08-13
+225,"Priya ""Pri"" Nair",Chennai,38302.87,"said ""ok""",2025-08-14
+226,Ramesh Kumar,Pune,74472.32,"said ""ok""",2025-08-15
+227,Zoë Müller,दिल्ली,49537.42,,2025-08-16
+228,"Aarav, Jr.",Chennai,96534.74,"line1
+line2",2025-08-17
+229,Sunita Sharma,,9980.07,"said ""ok""",2025-08-18
+230,Ramesh Kumar,दिल्ली,41003.35,"paid ₹500, rest due",2025-08-19
+231,Sunita Sharma,,78153.93,"line1
+line2",2025-08-20
+232,José Álvarez,Chennai,69272.84,,2025-08-21
+233,José Álvarez,Chennai,38006.76,"line1
+line2",2025-08-22
+234,田中太郎,Chennai,3599.52,,2025-08-23
+235,"Priya ""Pri"" Nair",Pune,99741.62,,2025-08-24
+236,Zoë Müller,"Mumbai, MH",76038.61,,2025-08-25
+237,田中太郎,दिल्ली,69402.48,,2025-08-26
+238,Ramesh Kumar,Pune,,,2025-08-27
+239,अनिल गुप्ता,Pune,37489.99,"paid ₹500, rest due",2025-08-28
+240,"Priya ""Pri"" Nair",Chennai,41210.64,"paid ₹500, rest due",2025-08-29
+241,"Aarav, Jr.",दिल्ली,7905.97,"said ""ok""",2025-08-30
+242,"Priya ""Pri"" Nair",,91282.86,"paid ₹500, rest due",2025-08-31
+243,"Priya ""Pri"" Nair",,63793.45,"said ""ok""",2025-09-01
+244,अनिल गुप्ता,"Mumbai, MH",89890.97,"said ""ok""",2025-09-02
+245,अनिल गुप्ता,Chennai,15805.82,"said ""ok""",2025-09-03
+246,José Álvarez,Chennai,29922.13,"said ""ok""",2025-09-04
+247,अनिल गुप्ता,,84531.09,"paid ₹500, rest due",2025-09-05
+248,Zoë Müller,,10674.15,"said ""ok""",2025-09-06
+249,José Álvarez,Chennai,29593.98,"line1
+line2",2025-09-07
+250,Ramesh Kumar,,27455.02,"₹1,25,000 total",2025-09-08

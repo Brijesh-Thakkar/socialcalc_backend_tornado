@@ -39,11 +39,11 @@ looks like this:
     print "linked account:", client.account_info()
 
 """
-from __future__ import absolute_import
+
 
 import re
 import os
-from StringIO import StringIO
+from io import StringIO
 try:
     import json
 except ImportError:
@@ -64,7 +64,7 @@ def format_path(path):
     path = re.sub(r'/+', '/', path)
 
     if path == '/':
-        return (u"" if isinstance(path, unicode) else "")
+        return ("" if isinstance(path, str) else "")
     else:
         return '/' + path.strip('/')
 
@@ -202,7 +202,7 @@ class DropboxClient(object):
                 try:
                     (self.offset, self.upload_id) = self.client.upload_chunk(StringIO(self.last_block), next_chunk_size, self.offset, self.upload_id)
                     self.last_block = None
-                except ErrorResponse, e:
+                except ErrorResponse as e:
                     reply = e.body
                     if "offset" in reply and reply['offset'] != 0:
                         if reply['offset'] > self.offset:
@@ -270,7 +270,7 @@ class DropboxClient(object):
         try:
             reply = self.rest_client.PUT(url, file_obj, headers)
             return reply['offset'], reply['upload_id']
-        except ErrorResponse, e:
+        except ErrorResponse as e:
             raise e
 
 

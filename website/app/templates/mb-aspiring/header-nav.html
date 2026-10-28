@@ -1,104 +1,88 @@
     <!-- Navigation -->
-    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" role="navigation">
         <div class="container">
-            <!-- Brand and toggle get grouped for better mobile display -->
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="/web/home/index.html">Aspiring Apps</a>
-            </div>
-            <!-- Collect the nav links, forms, and other content for toggling -->
+            <a class="navbar-brand" href="/web/home/index.html">Aspiring Apps</a>
+            <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#bs-example-navbar-collapse-1">
+                <span class="visually-hidden">Toggle navigation</span>
+                <span class="navbar-toggler-icon"></span>
+            </button>
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                <ul class="nav navbar-nav navbar-right">
-                    <li>
-                        <a href="about.html">About</a>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/web/home/about.html">About</a>
                     </li>
-                   <li>
-                        <a href="contact.html">Contact</a>
-                    </li>
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Products<b class="caret"></b></a>
+
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Products</a>
                         <ul class="dropdown-menu">
-                           <li>
-                                <a href="portfolio-business.html">Business Apps</a>
-                            </li>
-                           <li>
-                                <a href="portfolio-personalfinance.html">Personal Finance Apps</a>
-                            </li>
-                           <li>
-                                <a href="portfolio-lifestyle.html">Lifestyle Apps</a>
-                            </li>
-                           <li>
-                                <a href="portfolio-appbundles.html">App Bundles</a>
-                            </li>
-			    
-                        </ul>
-                    </li>
-		    <!-------------------------- Commented Out
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Blog <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <a href="blog-home-1.html">Blog Home 1</a>
-                            </li>
-                            <li>
-                                <a href="blog-home-2.html">Blog Home 2</a>
-                            </li>
-                            <li>
-                                <a href="blog-post.html">Blog Post</a>
-                            </li>
-                        </ul>
-                    </li>
-		    ------------------------->
-                   <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Buy <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <a href="full-width.html">Apple Itunes Store</a>
-                            </li>
-                            <li>
-                                <a href="sidebar.html">Google Play Store</a>
-                            </li>
-                            <li>
-                                <a href="faq.html">Amazon App Store</a>
-                            </li>
-                            <li>
-                                <a href="404.html">Samsumg App Store</a>
-                            </li>
-                            <li>
-                                <a href="pricing.html">Nook Store</a>
-                            </li>
+                            <li><a class="dropdown-item" href="/web/home/portfolio-business.html">Business Apps</a></li>
+                            <li><a class="dropdown-item" href="/web/home/portfolio-personalfinance.html">Finance Apps</a></li>
+                            <li><a class="dropdown-item" href="/web/home/portfolio-health.html">Health Apps</a></li>
+                            <li><a class="dropdown-item" href="/web/home/portfolio-productivity.html">Productivity Apps</a></li>
+                            <li><a class="dropdown-item" href="/web/home/portfolio-appbundles.html">App Bundles</a></li>
                         </ul>
                     </li>
 
-                   <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Connect <b class="caret"></b></a>
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Buy</a>
                         <ul class="dropdown-menu">
-		    
-			  <li>
-			  <a href="#"><i class="fa fa-facebook-square fa-2x"></i> <small>Facebook</small> </a>
-			  </li>
-			  <li>
-			  <a href="#"><i class="fa fa-linkedin-square fa-2x"></i> <small>LinkedIn</small></a>
-			  </li>
-			  <li>
-			  <a href="#"><i class="fa fa-twitter-square fa-2x"></i> <small>Twitter</small></a>
-			  </li>
-			  <li>
-			  <a href="#"><i class="fa fa-google-plus-square fa-2x"></i> <small>GooglePlus</small></a>
-			  </li>
-		       </ul>
-		  </li>
+                            <li><a class="dropdown-item store-connect" href="https://itunes.apple.com/us/artist/aspiring-investments-corp/id465587618">Apple Itunes Store 1</a></li>
+                            <li><a class="dropdown-item store-connect" href="https://itunes.apple.com/us/developer/manu-gupta/id806110625">Apple Itunes Store 2</a></li>
+                            <li><a class="dropdown-item store-connect" href="https://itunes.apple.com/my/developer/manu-gupta/id903728366">Apple Itunes Store 3</a></li>
+                            <li><a class="dropdown-item store-connect" href="https://play.google.com/store/apps/developer?id=Aspiring+Investments+Corp">Google Play Store 1</a></li>
+                            <li><a class="dropdown-item store-connect" href="https://play.google.com/store/apps/developer?id=ASPIRING+USER+APPS">Google Play Store 2</a></li>
+                            <li><a class="dropdown-item store-connect" href="http://www.amazon.com/s/ref=bl_sr_mobile-apps?_encoding=UTF8&field-brandtextbin=Aspiring%20Investments%20Corp&node=2350149011">Amazon App Store</a></li>
+                        </ul>
+                    </li>
 
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Connect</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item social-connect" href="https://twitter.com/aspiringapps"><i class="fa fa-twitter-square fa-2x"></i> <small>Twitter</small></a></li>
+                            <li><a class="dropdown-item social-connect" href="https://www.facebook.com/AspiringApps"><i class="fa fa-facebook-square fa-2x"></i> <small>Facebook</small></a></li>
+                            <li><a class="dropdown-item social-connect" href="http://www.youtube.com/user/aspiringinvestments/featured"><i class="fa fa-youtube-square fa-2x"></i> <small>Youtube</small></a></li>
+                            <li><a class="dropdown-item social-connect" href="http://www.pinterest.com/aspiringapps/"><i class="fa fa-pinterest-square fa-2x"></i> <small>Pinterest</small></a></li>
+                            <li><a class="dropdown-item social-connect" href="https://plus.google.com/102735125870952566387"><i class="fa fa-google-plus-square fa-2x"></i> <small>Google Plus</small></a></li>
+                            <li><a class="dropdown-item social-connect" href="https://www.linkedin.com/company/aspiring-investments-corp"><i class="fa fa-linkedin-square fa-2x"></i> <small>LinkedIn</small></a></li>
+                        </ul>
+                    </li>
 
-		    
+                    <li class="nav-item">
+                        <a class="nav-link" href="/web/home/contact.html">Contact</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/web/login">Login</a>
+                    </li>
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
+
+            <!-- Modal -->
+              <div class="modal fade" id="myModal" role="dialog">
+                <div class="modal-dialog">
+
+                  <!-- Modal content-->
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h4 class="modal-title">Donate</h4>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="text-align: center">
+                      <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+                        <input type="hidden" name="cmd" value="_s-xclick">
+                        <input type="hidden" name="hosted_button_id" value="7XYA5PEFRT6DC">
+                        <input class="donate-click" type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+                        <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+                    </form>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
         </div>
         <!-- /.container -->
     </nav>

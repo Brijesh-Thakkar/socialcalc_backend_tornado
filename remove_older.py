@@ -6,7 +6,7 @@ import cloud.storage.storage
 import shutil
 
 html_bucket = "aspiring-html-files"
-pdf_bucket = "aspiring-pdf-files"
+pdf_bucket = os.getenv("PDF_S3_BUCKET", "aspiring-pdf-files")
 pdf_path = "/home/ubuntu/tmp/htmltopdf"
 html_path = "/home/ubuntu/tmp/htmlonly"
 older_pdf_path = "/home/ubuntu/tmp/olderpdf"
@@ -30,20 +30,20 @@ def remove_older_pdf_files():
             if fname[-4:] == ".pdf":
                 if cloud.storage.storage.existsItem(fnameid, pdf_bucket):
                     #file is ripe for deletion
-                    print "moving ",f,"created ",time.ctime(os.path.getctime(fname))
+                    print("moving ",f,"created ",time.ctime(os.path.getctime(fname)))
                     #os.remove(fname)
                     shutil.move(fname,older_pdf_path+"/"+f)
                 else:
-                    print "found old file not in S3 !!!"
+                    print("found old file not in S3 !!!")
                     break
             else:
-                print "skipping", f
+                print("skipping", f)
         else:
-            print "less than 30, breaking"
+            print("less than 30, breaking")
             break
 
 def usage():
-    print "usage: remove_older"
+    print("usage: remove_older")
     exit()
 
 if __name__ == "__main__":

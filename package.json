@@ -1,0 +1,17 @@
+{
+  "name": "tornado-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end Playwright tests for Tornado spreadsheet application",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "typescript": "^5.0.0"
+  }
+}

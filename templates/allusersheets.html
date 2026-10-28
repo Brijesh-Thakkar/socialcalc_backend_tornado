@@ -40,6 +40,10 @@
 </div>
 <div class="span-8" align="center">
     
+    <form action="/search" method="GET" style="margin-bottom: 15px;">
+        <input type="text" name="q" value="{{ handler.get_argument('q', '') }}">
+        <input type="submit" value="Search">
+    </form>
     
     <!-- <form action="/stock" method="POST"> -->
     

@@ -5,18 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
     <meta name="author" content="">
+    <meta name="google-site-verification" content="NmQesLOkQ_QgOCEzVLOq68OscTmnYXSPr3eO0ePxS_U" />
 
     <title>Aspiring Apps</title>
 
     <!-- Bootstrap Core CSS -->
-    <link href="{{ static_url("css/bootstrap.min.css") }}" rel="stylesheet">
+    <link href="{{ static_url('css/bootstrap.min.css') }}" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="{{ static_url("css/modern-business.css") }}" rel="stylesheet">
+    <link href="{{ static_url('css/modern-business.css') }}" rel="stylesheet">
 
     <!-- Custom Fonts -->
-    <link href="{{ static_url("font-awesome/css/font-awesome.min.css")
-    }}" rel="stylesheet" type="text/css">
+    <link href="{{ static_url('font-awesome/css/font-awesome.min.css')}}" rel="stylesheet" type="text/css">
+
+    <link href="{{ static_url('css/collection.css')}}" rel="stylesheet" type="text/css">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -24,5 +26,122 @@
         <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
         <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-52640465-3', 'auto');
+      
+      ga('send', 'pageview');
+
+    </script>
+
+    <script type="text/javascript">
+
+    function sendEvent(event) {
+        ga('send', 'event', event.category, event.action, event.label);
+    }  
+
+
+    window.onload = function() {
+        
+        /* Nav bar social */
+        var anchors = document.getElementsByClassName("social-connect");
+        for(var i = 0; i < anchors.length; i++) {
+            var anchor = anchors[i];
+            anchor.addEventListener("click",  function(){
+                var label = this.getElementsByTagName('small')[0].innerHTML;
+                label = window.location.href+"/"+label;
+                // alert(label);
+                var event = {category: 'Social', action: 'click', label: label }; 
+                sendEvent(event);
+            });
+        }
+
+        /* Footers social */
+        var footerSocial = document.getElementsByClassName("footer-connect");
+        for(var i = 0; i < footerSocial.length; i++) {
+            var anchor = footerSocial[i];
+            anchor.addEventListener("click",  function(){
+                var label = this.getElementsByTagName('span')[0].innerHTML;
+                label = window.location.href+"/"+label;
+                // alert(label);
+                var event = {category: 'Footers', action: 'click', label: label }; 
+                sendEvent(event);
+            });
+        }
+
+        /* App store connect */
+        var storeConnect = document.getElementsByClassName("store-connect");
+        for(var i = 0; i < storeConnect.length; i++) {
+            var anchor = storeConnect[i];
+            anchor.addEventListener("click",  function(){
+                var label = this.innerHTML;
+                label = window.location.href+"/"+label;
+                // alert(label);
+                var event = {category: 'AppStores', action: 'click', label: label }; 
+                sendEvent(event);
+            });
+        }
+
+        /* Visit store connect */
+        var visitStore = document.getElementsByClassName("visit-store");
+        for(var i = 0; i < visitStore.length; i++) {
+            var anchor = visitStore[i];
+            anchor.addEventListener("click",  function(){
+                var label = this.innerHTML;
+                label = window.location.href+"/"+label;
+                // alert(label);
+                var event = {category: 'VisitStores', action: 'click', label: label }; 
+                sendEvent(event);
+            });
+        }
+
+        /* Donate button */
+        var donateButton = document.getElementsByClassName("donate-click");
+        for(var i = 0; i < donateButton.length; i++) {
+            var anchor = donateButton[i];
+            anchor.addEventListener("click",  function(){
+                var label = this.getAttribute('alt').substring(0, 6);
+                /// alert(this.getAttribute('alt'));
+                label = window.location.href+"/"+label;
+                // alert(label);
+                var event = {category: 'Donate', action: 'click', label: label }; 
+                // alert(JSON.stringify(event));
+                sendEvent(event);
+            });
+        }
+
+        /* App category */
+        var marketingIcons = document.getElementsByClassName("app-category");
+        for(var i = 0; i < marketingIcons.length; i++) {
+            var anchor = marketingIcons[i];
+            anchor.addEventListener("click",  function(){
+                var label = this.getAttribute("href").replace(".html", "");;
+                label = window.location.href+"/"+label;
+                // alert(label);
+                var event = {category: 'Category', action: 'click', label: label }; 
+                sendEvent(event);
+            });
+        }
+
+        /* Buy button */
+        var buyButton = document.getElementsByClassName("buy-button");
+        for(var i = 0; i < buyButton.length; i++) {
+            var anchor = buyButton[i];
+            anchor.addEventListener("click",  function(){
+                var label = this.innerHTML;
+                label = window.location.href+"/"+label;
+                // alert(label);
+                var event = {category: 'Purchase', action: 'click', label: label };
+                sendEvent(event);
+            });
+        }
+        
+
+    }// Onload function
+    </script>
 
 </head>

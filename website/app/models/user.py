@@ -8,7 +8,7 @@
 
 import simplejson
 from passlib.hash import sha256_crypt
-import storage
+from . import storage
 
 class User:
     def __init__(self, user="", password="", name="", source="", data=None):
